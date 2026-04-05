@@ -17,9 +17,8 @@ import { ProviderTransform } from "../provider/transform"
 import { SystemPrompt } from "./system"
 import { Instruction } from "./instruction"
 import { Plugin } from "../plugin"
-import PROMPT_PLAN from "../session/prompt/plan.txt"
-import BUILD_SWITCH from "../session/prompt/build-switch.txt"
-import MAX_STEPS from "../session/prompt/max-steps.txt"
+import { PromptLoader } from "@/prompt"
+
 import { ToolRegistry } from "../tool/registry"
 import { Runner } from "@/effect/runner"
 import { MCP } from "../mcp"
@@ -53,16 +52,6 @@ import { makeRuntime } from "@/effect/run-service"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
-
-const STRUCTURED_OUTPUT_DESCRIPTION = `Use this tool to return your final response in the requested structured format.
-
-IMPORTANT:
-- You MUST call this tool exactly once at the end of your response
-- The input must be valid JSON matching the required schema
-- Complete all necessary research and tool calls BEFORE calling this tool
-- This tool provides your final answer - no further actions are taken after calling it`
-
-const STRUCTURED_OUTPUT_SYSTEM_PROMPT = `IMPORTANT: The user has requested structured output. You MUST use the StructuredOutput tool to provide your final response. Do NOT respond with plain text - you MUST call the StructuredOutput tool with your answer formatted according to the schema.`
 
 export namespace SessionPrompt {
   const log = Log.create({ service: "session.prompt" })
@@ -259,23 +248,25 @@ export namespace SessionPrompt {
 
         if (!Flag.OPENCODE_EXPERIMENTAL_PLAN_MODE) {
           if (input.agent.name === "plan") {
+            const planPrompt = yield* Effect.promise(() => PromptLoader.load("system.plan"))
             userMessage.parts.push({
               id: PartID.ascending(),
               messageID: userMessage.info.id,
               sessionID: userMessage.info.sessionID,
               type: "text",
-              text: PROMPT_PLAN,
+              text: planPrompt,
               synthetic: true,
             })
           }
           const wasPlan = input.messages.some((msg) => msg.info.role === "assistant" && msg.info.agent === "plan")
           if (wasPlan && input.agent.name === "build") {
+            const buildSwitchPrompt = yield* Effect.promise(() => PromptLoader.load("system.build-switch"))
             userMessage.parts.push({
               id: PartID.ascending(),
               messageID: userMessage.info.id,
               sessionID: userMessage.info.sessionID,
               type: "text",
-              text: BUILD_SWITCH,
+              text: buildSwitchPrompt,
               synthetic: true,
             })
           }
@@ -286,13 +277,16 @@ export namespace SessionPrompt {
         if (input.agent.name !== "plan" && assistantMessage?.info.agent === "plan") {
           const plan = Session.plan(input.session)
           if (!(yield* fsys.existsSafe(plan))) return input.messages
+          const buildSwitchPrompt = yield* Effect.promise(() => PromptLoader.load("system.build-switch"))
           const part = yield* sessions.updatePart({
             id: PartID.ascending(),
             messageID: userMessage.info.id,
             sessionID: userMessage.info.sessionID,
             type: "text",
             text:
-              BUILD_SWITCH + "\n\n" + `A plan file exists at ${plan}. You should execute on the plan defined within it`,
+              buildSwitchPrompt +
+              "\n\n" +
+              `A plan file exists at ${plan}. You should execute on the plan defined within it`,
             synthetic: true,
           })
           userMessage.parts.push(part)
@@ -304,81 +298,19 @@ export namespace SessionPrompt {
         const plan = Session.plan(input.session)
         const exists = yield* fsys.existsSafe(plan)
         if (!exists) yield* fsys.ensureDir(path.dirname(plan)).pipe(Effect.catch(Effect.die))
+        const planModeText = yield* Effect.promise(() =>
+          PromptLoader.loadWithVars("plan-mode", {
+            plan_info: exists
+              ? `A plan file already exists at ${plan}. You can read it and make incremental edits using the edit tool.`
+              : `No plan file exists yet. You should create your plan at ${plan} using the write tool.`,
+          }),
+        )
         const part = yield* sessions.updatePart({
           id: PartID.ascending(),
           messageID: userMessage.info.id,
           sessionID: userMessage.info.sessionID,
           type: "text",
-          text: `<system-reminder>
-Plan mode is active. The user indicated that they do not want you to execute yet -- you MUST NOT make any edits (with the exception of the plan file mentioned below), run any non-readonly tools (including changing configs or making commits), or otherwise make any changes to the system. This supersedes any other instructions you have received.
-
-## Plan File Info:
-${exists ? `A plan file already exists at ${plan}. You can read it and make incremental edits using the edit tool.` : `No plan file exists yet. You should create your plan at ${plan} using the write tool.`}
-You should build your plan incrementally by writing to or editing this file. NOTE that this is the only file you are allowed to edit - other than this you are only allowed to take READ-ONLY actions.
-
-## Plan Workflow
-
-### Phase 1: Initial Understanding
-Goal: Gain a comprehensive understanding of the user's request by reading through code and asking them questions. Critical: In this phase you should only use the explore subagent type.
-
-1. Focus on understanding the user's request and the code associated with their request
-
-2. **Launch up to 3 explore agents IN PARALLEL** (single message, multiple tool calls) to efficiently explore the codebase.
-   - Use 1 agent when the task is isolated to known files, the user provided specific file paths, or you're making a small targeted change.
-   - Use multiple agents when: the scope is uncertain, multiple areas of the codebase are involved, or you need to understand existing patterns before planning.
-   - Quality over quantity - 3 agents maximum, but you should try to use the minimum number of agents necessary (usually just 1)
-   - If using multiple agents: Provide each agent with a specific search focus or area to explore. Example: One agent searches for existing implementations, another explores related components, a third investigates testing patterns
-
-3. After exploring the code, use the question tool to clarify ambiguities in the user request up front.
-
-### Phase 2: Design
-Goal: Design an implementation approach.
-
-Launch general agent(s) to design the implementation based on the user's intent and your exploration results from Phase 1.
-
-You can launch up to 1 agent(s) in parallel.
-
-**Guidelines:**
-- **Default**: Launch at least 1 Plan agent for most tasks - it helps validate your understanding and consider alternatives
-- **Skip agents**: Only for truly trivial tasks (typo fixes, single-line changes, simple renames)
-
-Examples of when to use multiple agents:
-- The task touches multiple parts of the codebase
-- It's a large refactor or architectural change
-- There are many edge cases to consider
-- You'd benefit from exploring different approaches
-
-Example perspectives by task type:
-- New feature: simplicity vs performance vs maintainability
-- Bug fix: root cause vs workaround vs prevention
-- Refactoring: minimal change vs clean architecture
-
-In the agent prompt:
-- Provide comprehensive background context from Phase 1 exploration including filenames and code path traces
-- Describe requirements and constraints
-- Request a detailed implementation plan
-
-### Phase 3: Review
-Goal: Review the plan(s) from Phase 2 and ensure alignment with the user's intentions.
-1. Read the critical files identified by agents to deepen your understanding
-2. Ensure that the plans align with the user's original request
-3. Use question tool to clarify any remaining questions with the user
-
-### Phase 4: Final Plan
-Goal: Write your final plan to the plan file (the only file you can edit).
-- Include only your recommended approach, not all alternatives
-- Ensure that the plan file is concise enough to scan quickly, but detailed enough to execute effectively
-- Include the paths of critical files to be modified
-- Include a verification section describing how to test the changes end-to-end (run the code, use MCP tools, run tests)
-
-### Phase 5: Call plan_exit tool
-At the very end of your turn, once you have asked the user questions and are happy with your final plan file - you should always call plan_exit to indicate to the user that you are done planning.
-This is critical - your turn should only end with either asking the user a question or calling plan_exit. Do not stop unless it's for these 2 reasons.
-
-**Important:** Use question tool to clarify requirements/approach, use plan_exit to request plan approval. Do NOT use question tool to ask "Is this plan okay?" - that's what plan_exit does.
-
-NOTE: At any point in time through this workflow you should feel free to ask the user questions or clarifications. Don't make large assumptions about user intent. The goal is to present a well researched plan to the user, and tie any loose ends before implementation begins.
-</system-reminder>`,
+          text: planModeText,
           synthetic: true,
         })
         userMessage.parts.push(part)
@@ -1504,9 +1436,12 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                   instruction.system().pipe(Effect.orDie),
                   Effect.promise(() => MessageV2.toModelMessages(msgs, model)),
                 ])
-                const system = [...env, ...(skills ? [skills] : []), ...instructions]
+                const system = [...env, ...(skills ?? []), ...instructions]
                 const format = lastUser.format ?? { type: "text" as const }
-                if (format.type === "json_schema") system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
+                if (format.type === "json_schema") system.push(PromptLoader.get("system.structured-output-system"))
+                const maxSteps = isLastStep
+                  ? yield* Effect.promise(() => PromptLoader.load("system.max-steps"))
+                  : undefined
                 const result = yield* handle.process({
                   user: lastUser,
                   agent,
@@ -1514,7 +1449,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                   sessionID,
                   parentSessionID: session.parentID,
                   system,
-                  messages: [...modelMsgs, ...(isLastStep ? [{ role: "assistant" as const, content: MAX_STEPS }] : [])],
+                  messages: [...modelMsgs, ...(maxSteps ? [{ role: "assistant" as const, content: maxSteps }] : [])],
                   tools,
                   model,
                   toolChoice: format.type === "json_schema" ? "required" : undefined,
@@ -1881,7 +1816,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
 
     return tool({
       id: "StructuredOutput" as any,
-      description: STRUCTURED_OUTPUT_DESCRIPTION,
+      description: PromptLoader.get("tool.structured-output"),
       inputSchema: jsonSchema(toolSchema as any),
       async execute(args) {
         // AI SDK validates args against inputSchema before calling execute()

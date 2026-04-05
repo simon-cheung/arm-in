@@ -2,7 +2,7 @@ import z from "zod"
 import { Effect } from "effect"
 import { Tool } from "./tool"
 import { Question } from "../question"
-import DESCRIPTION from "./question.txt"
+import { PromptLoader } from "@/prompt"
 
 const parameters = z.object({
   questions: z.array(Question.Info.omit({ custom: true })).describe("Questions to ask"),
@@ -18,7 +18,7 @@ export const QuestionTool = Tool.defineEffect<typeof parameters, Metadata, Quest
     const question = yield* Question.Service
 
     return {
-      description: DESCRIPTION,
+      description: PromptLoader.get("tool.question"),
       parameters,
       async execute(params: z.infer<typeof parameters>, ctx: Tool.Context<Metadata>) {
         const answers = await question

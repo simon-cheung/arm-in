@@ -8,7 +8,7 @@ import * as path from "path"
 import { Tool } from "./tool"
 import { LSP } from "../lsp"
 import { createTwoFilesPatch, diffLines } from "diff"
-import DESCRIPTION from "./edit.txt"
+import { PromptLoader } from "@/prompt"
 import { File } from "../file"
 import { FileWatcher } from "../file/watcher"
 import { Bus } from "../bus"
@@ -35,7 +35,7 @@ function convertToLineEnding(text: string, ending: "\n" | "\r\n"): string {
 }
 
 export const EditTool = Tool.define("edit", {
-  description: DESCRIPTION,
+  description: PromptLoader.get("tool.edit"),
   parameters: z.object({
     filePath: z.string().describe("The absolute path to the file to modify"),
     oldString: z.string().describe("The text to replace"),

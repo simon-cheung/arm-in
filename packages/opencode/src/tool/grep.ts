@@ -5,7 +5,7 @@ import { Filesystem } from "../util/filesystem"
 import { Ripgrep } from "../file/ripgrep"
 import { Process } from "../util/process"
 
-import DESCRIPTION from "./grep.txt"
+import { PromptLoader } from "@/prompt"
 import { Instance } from "../project/instance"
 import path from "path"
 import { assertExternalDirectory } from "./external-directory"
@@ -13,7 +13,7 @@ import { assertExternalDirectory } from "./external-directory"
 const MAX_LINE_LENGTH = 2000
 
 export const GrepTool = Tool.define("grep", {
-  description: DESCRIPTION,
+  description: PromptLoader.get("tool.grep"),
   parameters: z.object({
     pattern: z.string().describe("The regex pattern to search for in file contents"),
     path: z.string().optional().describe("The directory to search in. Defaults to the current working directory."),

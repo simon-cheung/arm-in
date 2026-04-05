@@ -1,12 +1,12 @@
 import z from "zod"
 import { Tool } from "./tool"
 import { EditTool } from "./edit"
-import DESCRIPTION from "./multiedit.txt"
+import { PromptLoader } from "@/prompt"
 import path from "path"
 import { Instance } from "../project/instance"
 
 export const MultiEditTool = Tool.define("multiedit", {
-  description: DESCRIPTION,
+  description: PromptLoader.get("tool.multiedit"),
   parameters: z.object({
     filePath: z.string().describe("The absolute path to the file to modify"),
     edits: z

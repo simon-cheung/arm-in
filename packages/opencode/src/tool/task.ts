@@ -1,5 +1,5 @@
 import { Tool } from "./tool"
-import DESCRIPTION from "./task.txt"
+import { PromptLoader } from "@/prompt"
 import z from "zod"
 import { Session } from "../session"
 import { SessionID, MessageID } from "../session/schema"
@@ -35,7 +35,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
     : agents
   const list = accessibleAgents.toSorted((a, b) => a.name.localeCompare(b.name))
 
-  const description = DESCRIPTION.replace(
+  const description = PromptLoader.get("tool.task").replace(
     "{agents}",
     list
       .map((a) => `- ${a.name}: ${a.description ?? "This subagent should only be called manually by the user."}`)

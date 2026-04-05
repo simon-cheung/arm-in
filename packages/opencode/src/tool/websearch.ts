@@ -1,6 +1,6 @@
 import z from "zod"
 import { Tool } from "./tool"
-import DESCRIPTION from "./websearch.txt"
+import { PromptLoader } from "@/prompt"
 import { abortAfterAny } from "../util/abort"
 
 const API_CONFIG = {
@@ -40,7 +40,7 @@ interface McpSearchResponse {
 export const WebSearchTool = Tool.define("websearch", async () => {
   return {
     get description() {
-      return DESCRIPTION.replace("{{year}}", new Date().getFullYear().toString())
+      return PromptLoader.get("tool.websearch").replace("{{year}}", new Date().getFullYear().toString())
     },
     parameters: z.object({
       query: z.string().describe("Websearch query"),

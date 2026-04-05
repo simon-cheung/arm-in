@@ -2,14 +2,14 @@ import z from "zod"
 import { Tool } from "./tool"
 import { ProviderID, ModelID } from "../provider/schema"
 import { errorMessage } from "../util/error"
-import DESCRIPTION from "./batch.txt"
+import { PromptLoader } from "@/prompt"
 
 const DISALLOWED = new Set(["batch"])
 const FILTERED_FROM_SUGGESTIONS = new Set(["invalid", "patch", ...DISALLOWED])
 
 export const BatchTool = Tool.define("batch", async () => {
   return {
-    description: DESCRIPTION,
+    description: PromptLoader.get("tool.batch"),
     parameters: z.object({
       tool_calls: z
         .array(

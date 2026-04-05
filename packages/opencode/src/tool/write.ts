@@ -3,7 +3,7 @@ import * as path from "path"
 import { Tool } from "./tool"
 import { LSP } from "../lsp"
 import { createTwoFilesPatch } from "diff"
-import DESCRIPTION from "./write.txt"
+import { PromptLoader } from "@/prompt"
 import { Bus } from "../bus"
 import { File } from "../file"
 import { FileWatcher } from "../file/watcher"
@@ -18,7 +18,7 @@ const MAX_DIAGNOSTICS_PER_FILE = 20
 const MAX_PROJECT_DIAGNOSTICS_FILES = 5
 
 export const WriteTool = Tool.define("write", {
-  description: DESCRIPTION,
+  description: PromptLoader.get("tool.write"),
   parameters: z.object({
     content: z.string().describe("The content to write to the file"),
     filePath: z.string().describe("The absolute path to the file to write (must be absolute, not relative)"),

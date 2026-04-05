@@ -8,7 +8,7 @@ import { Tool } from "./tool"
 import { AppFileSystem } from "../filesystem"
 import { LSP } from "../lsp"
 import { FileTime } from "../file/time"
-import DESCRIPTION from "./read.txt"
+import { PromptLoader } from "@/prompt"
 import { Instance } from "../project/instance"
 import { assertExternalDirectoryEffect } from "./external-directory"
 import { Instruction } from "../session/instruction"
@@ -218,7 +218,7 @@ export const ReadTool = Tool.defineEffect(
     })
 
     return {
-      description: DESCRIPTION,
+      description: PromptLoader.get("tool.read"),
       parameters,
       async execute(params: z.infer<typeof parameters>, ctx) {
         return Effect.runPromise(run(params, ctx).pipe(Effect.orDie))

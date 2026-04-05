@@ -1,6 +1,6 @@
 import z from "zod"
 import { Tool } from "./tool"
-import DESCRIPTION from "./codesearch.txt"
+import { PromptLoader } from "@/prompt"
 import { abortAfterAny } from "../util/abort"
 
 const API_CONFIG = {
@@ -34,7 +34,7 @@ interface McpCodeResponse {
 }
 
 export const CodeSearchTool = Tool.define("codesearch", {
-  description: DESCRIPTION,
+  description: PromptLoader.get("tool.codesearch"),
   parameters: z.object({
     query: z
       .string()

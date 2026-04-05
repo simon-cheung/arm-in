@@ -8,11 +8,7 @@ import { Truncate } from "../tool/truncate"
 import { Auth } from "../auth"
 import { ProviderTransform } from "../provider/transform"
 
-import PROMPT_GENERATE from "./generate.txt"
-import PROMPT_COMPACTION from "./prompt/compaction.txt"
-import PROMPT_EXPLORE from "./prompt/explore.txt"
-import PROMPT_SUMMARY from "./prompt/summary.txt"
-import PROMPT_TITLE from "./prompt/title.txt"
+import { PromptLoader } from "@/prompt"
 import { Permission } from "@/permission"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@/global"
@@ -180,7 +176,7 @@ export namespace Agent {
                 user,
               ),
               description: `Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. "src/components/**/*.tsx"), search code for keywords (eg. "API endpoints"), or answer questions about the codebase (eg. "how do API endpoints work?"). When calling this agent, specify the desired thoroughness level: "quick" for basic searches, "medium" for moderate exploration, or "very thorough" for comprehensive analysis across multiple locations and naming conventions.`,
-              prompt: PROMPT_EXPLORE,
+              prompt: PromptLoader.get("agent.explore"),
               options: {},
               mode: "subagent",
               native: true,
@@ -190,7 +186,7 @@ export namespace Agent {
               mode: "primary",
               native: true,
               hidden: true,
-              prompt: PROMPT_COMPACTION,
+              prompt: PromptLoader.get("agent.compaction"),
               permission: Permission.merge(
                 defaults,
                 Permission.fromConfig({
@@ -214,7 +210,7 @@ export namespace Agent {
                 }),
                 user,
               ),
-              prompt: PROMPT_TITLE,
+              prompt: PromptLoader.get("agent.title"),
             },
             summary: {
               name: "summary",
@@ -229,7 +225,7 @@ export namespace Agent {
                 }),
                 user,
               ),
-              prompt: PROMPT_SUMMARY,
+              prompt: PromptLoader.get("agent.summary"),
             },
           }
 
@@ -335,7 +331,7 @@ export namespace Agent {
           const resolved = yield* provider.getModel(model.providerID, model.modelID)
           const language = yield* provider.getLanguage(resolved)
 
-          const system = [PROMPT_GENERATE]
+          const system = [PromptLoader.get("agent.generate")]
           yield* Effect.promise(() =>
             Plugin.trigger("experimental.chat.system.transform", { model: resolved }, { system }),
           )

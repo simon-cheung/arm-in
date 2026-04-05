@@ -2,7 +2,7 @@ import z from "zod"
 import { Tool } from "./tool"
 import path from "path"
 import { LSP } from "../lsp"
-import DESCRIPTION from "./lsp.txt"
+import { PromptLoader } from "@/prompt"
 import { Instance } from "../project/instance"
 import { pathToFileURL } from "url"
 import { assertExternalDirectory } from "./external-directory"
@@ -21,7 +21,7 @@ const operations = [
 ] as const
 
 export const LspTool = Tool.define("lsp", {
-  description: DESCRIPTION,
+  description: PromptLoader.get("tool.lsp"),
   parameters: z.object({
     operation: z.enum(operations).describe("The LSP operation to perform"),
     filePath: z.string().describe("The absolute or relative path to the file"),

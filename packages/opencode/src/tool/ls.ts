@@ -1,7 +1,7 @@
 import z from "zod"
 import { Tool } from "./tool"
 import * as path from "path"
-import DESCRIPTION from "./ls.txt"
+import { PromptLoader } from "@/prompt"
 import { Instance } from "../project/instance"
 import { Ripgrep } from "../file/ripgrep"
 import { assertExternalDirectory } from "./external-directory"
@@ -36,7 +36,7 @@ export const IGNORE_PATTERNS = [
 const LIMIT = 100
 
 export const ListTool = Tool.define("list", {
-  description: DESCRIPTION,
+  description: PromptLoader.get("tool.ls"),
   parameters: z.object({
     path: z.string().describe("The absolute path to the directory to list (must be absolute, not relative)").optional(),
     ignore: z.array(z.string()).describe("List of glob patterns to ignore").optional(),

@@ -7,7 +7,7 @@ import { MessageV2 } from "../session/message-v2"
 import { Provider } from "../provider/provider"
 import { Instance } from "../project/instance"
 import { type SessionID, MessageID, PartID } from "../session/schema"
-import EXIT_DESCRIPTION from "./plan-exit.txt"
+import { PromptLoader } from "@/prompt"
 
 async function getLastModel(sessionID: SessionID) {
   for await (const item of MessageV2.stream(sessionID)) {
@@ -17,7 +17,7 @@ async function getLastModel(sessionID: SessionID) {
 }
 
 export const PlanExitTool = Tool.define("plan_exit", {
-  description: EXIT_DESCRIPTION,
+  description: PromptLoader.get("tool.plan-exit"),
   parameters: z.object({}),
   async execute(_params, ctx) {
     const session = await Session.get(ctx.sessionID)

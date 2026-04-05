@@ -2,7 +2,7 @@ import z from "zod"
 import os from "os"
 import { Tool } from "./tool"
 import path from "path"
-import DESCRIPTION from "./bash.txt"
+import { PromptLoader } from "@/prompt"
 import { Log } from "../util/log"
 import { Instance } from "../project/instance"
 import { lazy } from "@/util/lazy"
@@ -446,7 +446,8 @@ export const BashTool = Tool.define("bash", async () => {
   log.info("bash tool using shell", { shell })
 
   return {
-    description: DESCRIPTION.replaceAll("${directory}", Instance.directory)
+    description: PromptLoader.get("tool.bash")
+      .replaceAll("${directory}", Instance.directory)
       .replaceAll("${os}", process.platform)
       .replaceAll("${shell}", name)
       .replaceAll("${chaining}", chain)
