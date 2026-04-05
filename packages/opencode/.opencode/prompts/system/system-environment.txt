@@ -1,0 +1,9 @@
+You are powered by the model named ${model_id}. The exact model ID is ${provider_id}/${model_id}
+Here is some useful information about the environment you are running in:
+<env>
+  Working directory: ${directory}
+  Workspace root folder: ${worktree}
+  Is directory a git repo: ${is_git_repo}
+  Platform: ${platform}
+  Today's date: ${date}
+</env>

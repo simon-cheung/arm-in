@@ -1,0 +1,104 @@
+import { onCleanup, onMount, createEffect } from "solid-js"
+import Cherry from "cherry-markdown"
+import * as echarts from "echarts"
+import type { RichTextFileProps } from "./file"
+import "cherry-markdown/dist/cherry-markdown.css"
+import "./rich-text-viewer.css"
+
+const MARKDOWN_EXTS = [".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdtxt"]
+
+function extractFileExt(name: string): string | undefined {
+  const match = name.match(/\.[^.]+$/)
+  return match ? match[0] : undefined
+}
+
+function isMarkdownFile(name: string): boolean {
+  const ext = extractFileExt(name)
+  if (!ext) return false
+  return MARKDOWN_EXTS.includes(ext.toLowerCase())
+}
+
+export function RichTextViewerCM<T>(props: RichTextFileProps<T>) {
+  let containerRef: HTMLDivElement | undefined
+  let cherryInstance: Cherry | null = null
+  let containerId = `cherry-${Math.random().toString(36).slice(2)}`
+
+  const isMd = () => isMarkdownFile(props.file.name)
+
+  onMount(() => {
+    if (containerRef) {
+      containerRef.id = containerId
+      cherryInstance = new Cherry({
+        id: containerId,
+        value: props.file.contents as string,
+        engine: {
+          global: {
+            htmlWhiteList: "",
+            cssSource: "cherry",
+          },
+          syntax: {
+            codeBlock: {
+              theme: "github",
+              lineNumber: true, // 默认显示行号
+              copyCode: true, // 是否显示“复制”按钮
+              editCode: true, // 是否显示“编辑”按钮
+              changeLang: true, // 是否显示“切换语言”按钮              
+            },
+            table: {
+              disableChart: false,
+            },
+          },
+          echarts,
+        },
+        editor: {
+          enablePreview: false,
+          editMask: false,
+        },
+        toolbars: {
+          theme: "light",
+          showToolbar: true,
+          toolbar: [
+            "switchModel",
+            "togglePreview",
+            "|",
+            "bold",
+            "italic",
+            "strikethrough",
+            "quote",
+            "|",
+            "code",
+            "codeTheme",
+            "|",
+            "link",
+            "image",
+            "|",
+            "table",
+            "graph",
+            "|",
+            "toc",
+            "fullScreen",
+          ],
+        },
+        autoScroll: false,
+      })
+    }
+  })
+
+  createEffect(() => {
+    if (cherryInstance && props.file.contents) {
+      cherryInstance.setValue(props.file.contents as string)
+      // cherryInstance.setMarkdown(props.file.contents as string)
+    }
+  })
+
+  onCleanup(() => {
+    props.search?.register(null)
+    if (cherryInstance) {
+      cherryInstance.destroy()
+    }
+  })
+
+  return (
+    <div ref={(el) => (containerRef = el)} class={`rich-text-viewer rich-text-viewer-cherry ${props.class ?? ""}`} />
+  )
+}

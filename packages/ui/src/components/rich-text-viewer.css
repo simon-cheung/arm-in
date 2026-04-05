@@ -1,0 +1,232 @@
+.rich-text-viewer {
+  padding: 1rem;
+  outline: none;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.rich-text-viewer-cherry {
+  padding: 0;
+  height: 100%;
+}
+
+.rich-text-viewer-cherry .cherry {
+  height: 100%;
+}
+
+.rich-text-viewer-cherry .cherry-editor,
+.rich-text-viewer-cherry .cherry-previewer {
+  height: 100%;
+  overflow: auto;
+}
+
+.rich-text-viewer .markdown-content p {
+  margin: 0.5em 0;
+}
+
+.rich-text-viewer .markdown-content h1,
+.rich-text-viewer .markdown-content h2,
+.rich-text-viewer .markdown-content h3,
+.rich-text-viewer .markdown-content h4,
+.rich-text-viewer .markdown-content h5,
+.rich-text-viewer .markdown-content h6 {
+  margin: 1em 0 0.5em;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.rich-text-viewer .markdown-content h1 {
+  font-size: 2em;
+  border-bottom: 1px solid var(--border-base, #e5e5e5);
+  padding-bottom: 0.3em;
+}
+
+.rich-text-viewer .markdown-content h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--border-base, #e5e5e5);
+  padding-bottom: 0.3em;
+}
+
+.rich-text-viewer .markdown-content h3 {
+  font-size: 1.25em;
+}
+
+.rich-text-viewer .markdown-content h4 {
+  font-size: 1em;
+}
+
+.rich-text-viewer .markdown-content h1:first-child,
+.rich-text-viewer .markdown-content h2:first-child,
+.rich-text-viewer .markdown-content h3:first-child,
+.rich-text-viewer .markdown-content h4:first-child {
+  margin-top: 0;
+}
+
+.rich-text-viewer .markdown-content ul,
+.rich-text-viewer .markdown-content ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.rich-text-viewer .markdown-content li {
+  margin: 0.25em 0;
+}
+
+.rich-text-viewer .markdown-content li p {
+  margin: 0;
+}
+
+.rich-text-viewer .markdown-content blockquote {
+  margin: 0.5em 0;
+  padding-left: 1em;
+  border-left: 4px solid var(--border-base, #e5e5e5);
+  color: var(--text-weak, #666);
+}
+
+.rich-text-viewer .markdown-content code {
+  background: var(--surface-base, #f5f5f5);
+  border-radius: 3px;
+  padding: 0.1em 0.3em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.rich-text-viewer .markdown-content pre {
+  background: var(--surface-base, #f5f5f5);
+  border-radius: 6px;
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  margin: 0.5em 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.rich-text-viewer .markdown-content pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.875em;
+}
+
+.rich-text-viewer .markdown-content hr {
+  border: none;
+  border-top: 1px solid var(--border-base, #e5e5e5);
+  margin: 1em 0;
+}
+
+.rich-text-viewer .markdown-content a {
+  color: var(--syntax-info, #0077cc);
+  text-decoration: underline;
+}
+
+.rich-text-viewer .markdown-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.rich-text-viewer .markdown-content strong {
+  font-weight: 600;
+}
+
+.rich-text-viewer .markdown-content em {
+  font-style: italic;
+}
+
+.rich-text-viewer .markdown-content s {
+  text-decoration: line-through;
+}
+
+.rich-text-viewer .markdown-content mark {
+  background-color: var(--syntax-warning, #fef3c7);
+  padding: 0.1em 0.2em;
+  border-radius: 2px;
+}
+
+.rich-text-viewer .markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+}
+
+.rich-text-viewer .markdown-content th,
+.rich-text-viewer .markdown-content td {
+  border: 1px solid var(--border-base, #e5e5e5);
+  padding: 0.4em 0.8em;
+  text-align: left;
+}
+
+.rich-text-viewer .markdown-content th {
+  background: var(--surface-base, #f5f5f5);
+  font-weight: 600;
+}
+
+.rich-text-viewer .mermaid {
+  text-align: center;
+  margin: 1em 0;
+}
+
+.rich-text-viewer .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.rich-text-viewer .mermaid-error {
+  color: var(--text-error, #e74c3c);
+  background: var(--surface-error, #ffeaea);
+  padding: 0.5em;
+  border-radius: 4px;
+}
+
+.katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.katex {
+  font-size: 1.1em;
+}
+
+.rich-text-viewer .markdown-content p > code,
+.rich-text-viewer .markdown-content li > code,
+.rich-text-viewer .markdown-content td > code {
+  white-space: nowrap;
+}
+
+.rich-text-viewer .search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.rich-text-viewer .search-bar {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--background-base, #fff);
+  border: 1px solid var(--border-base, #e5e5e5);
+  border-radius: 6px;
+  padding: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.rich-text-viewer .search-bar input {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  width: 200px;
+}
+
+.rich-text-viewer .search-bar button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-weak, #666);
+}

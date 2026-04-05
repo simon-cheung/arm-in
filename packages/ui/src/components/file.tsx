@@ -43,6 +43,9 @@ import { acquireVirtualizer, virtualMetrics } from "../pierre/virtualizer"
 import { getWorkerPool } from "../pierre/worker"
 import { FileMedia, type FileMediaOptions } from "./file-media"
 import { FileSearchBar } from "./file-search"
+import { RichTextViewer } from "./rich-text-viewer"
+import { RichTextViewerCM } from "./rich-text-viewer-cm"
+import { prop } from "remeda"
 
 const VIRTUALIZE_BYTES = 500_000
 
@@ -89,7 +92,18 @@ export type DiffFileProps<T = {}> = FileDiffOptions<T> &
     preloadedDiff?: PreloadMultiFileDiffResult<T>
   }
 
-export type FileProps<T = {}> = TextFileProps<T> | DiffFileProps<T>
+export type RichTextFileProps<T = {}> = {
+  file: FileContents
+  mode: "rich-text"
+  editable?: boolean
+  onContentChange?: (content: string, json: any) => void
+  class?: string
+  classList?: ComponentProps<"div">["classList"]
+  media?: FileMediaOptions
+  search?: FileSearchControl
+}
+
+export type FileProps<T = {}> = TextFileProps<T> | DiffFileProps<T> | RichTextFileProps<T>
 
 const sharedKeys = [
   "mode",
@@ -1088,10 +1102,26 @@ function DiffViewer<T>(props: DiffFileProps<T>) {
 // Public API
 // ---------------------------------------------------------------------------
 
+const MARKDOWN_EXTS = [".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdtxt"]
+
+function isRichTextFile(file: { name: string }): boolean {
+  const match = file.name.match(/\.[^.]+$/)
+  if (!match) return false
+  return MARKDOWN_EXTS.includes(match[0].toLowerCase())
+}
+
 export function File<T>(props: FileProps<T>) {
-  if (props.mode === "text") {
-    return <FileMedia media={props.media} fallback={() => TextViewer(props)} />
+  if (props.mode === "rich-text") {
+    return <FileMedia media={props.media} fallback={() => <RichTextViewerCM {...(props as any)} />} />
   }
 
-  return <FileMedia media={props.media} fallback={() => DiffViewer(props)} />
+  if (props.mode === "text") {
+    const useRichText = isRichTextFile(props.file)
+    if (useRichText) {
+      return <FileMedia media={props.media} fallback={() => <RichTextViewerCM {...(props as any)} />} />
+    }
+    return <FileMedia media={props.media} fallback={() => <RichTextViewerCM {...(props as any)} />} />
+  }
+
+  return <FileMedia media={props.media} fallback={() => <DiffViewer {...props} />} />
 }
