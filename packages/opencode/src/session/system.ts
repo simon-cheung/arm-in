@@ -18,15 +18,15 @@ export namespace SystemPrompt {
     { pattern: (id) => id.toLowerCase().includes("kimi"), name: "kimi" },
   ]
 
-  export async function provider(model: Provider.Model): Promise<string[]> {
+  export function provider(model: Provider.Model): string[] {
     const name = PROVIDER_MAP.find((p) => p.pattern(model.api.id))?.name ?? "default"
-    const prompt = await PromptLoader.load(`system.${name}`)
+    const prompt = PromptLoader.get(`system.${name}`)
     return [prompt]
   }
 
   export async function environment(model: Provider.Model): Promise<string[]> {
     const project = Instance.project
-    const template = await PromptLoader.load("system.system-environment")
+    const template = PromptLoader.get("system.system-environment")
     const content = template
       .replace(/\$\{model_id\}/g, model.api.id)
       .replace(/\$\{provider_id\}/g, model.providerID)
@@ -42,7 +42,7 @@ export namespace SystemPrompt {
     if (Permission.disabled(["skill"], agent.permission).has("skill")) return undefined
 
     const list = await Skill.available(agent)
-    const template = await PromptLoader.load("system.system-skills")
+    const template = PromptLoader.get("system.system-skills")
     const skillsList = Skill.fmt(list, { verbose: true })
     const content = template.replace(/\$\{skills_list\}/g, skillsList)
     return [content]

@@ -23,7 +23,7 @@ export async function InstanceBootstrap() {
   FileWatcher.init()
   Vcs.init()
   Snapshot.init()
-  await PromptScaffold.ensureCriticalPrompts()
+  // await PromptScaffold.ensureCriticalPrompts()
   await PromptLoader.preload()
 
   Bus.subscribe(Command.Event.Executed, async (payload) => {

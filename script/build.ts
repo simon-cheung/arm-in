@@ -69,12 +69,12 @@ console.log(`Building: ${[...selected].join(", ")}`)
 
 if (selected.has("opencode")) {
   console.log("\n=== Building opencode ===")
-  await $`bun run script/build.ts`.cwd(`${root}/packages/opencode`)
+  await $`bun run --cwd packages/app build`
 }
 
 if (selected.has("sdk")) {
   console.log("\n=== Building SDK ===")
-  await $`bun run build`.cwd(`${root}/packages/sdk/js`)
+  await $`bun run --cwd packages/sdk build`
 }
 
 if (selected.has("desktop")) {

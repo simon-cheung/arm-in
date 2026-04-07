@@ -1,7 +1,7 @@
 import { onCleanup, onMount, createEffect } from "solid-js"
 import Cherry from "cherry-markdown"
 import * as echarts from "echarts"
-import type { RichTextFileProps } from "./file"
+import type { RichTextViewerProps } from "./file"
 import "cherry-markdown/dist/cherry-markdown.css"
 import "./rich-text-viewer.css"
 
@@ -18,7 +18,7 @@ function isMarkdownFile(name: string): boolean {
   return MARKDOWN_EXTS.includes(ext.toLowerCase())
 }
 
-export function RichTextViewerCM<T>(props: RichTextFileProps<T>) {
+export function RichTextViewerCM<T>(props: RichTextViewerProps<T>) {
   let containerRef: HTMLDivElement | undefined
   let cherryInstance: Cherry | null = null
   let containerId = `cherry-${Math.random().toString(36).slice(2)}`
@@ -39,10 +39,13 @@ export function RichTextViewerCM<T>(props: RichTextFileProps<T>) {
           syntax: {
             codeBlock: {
               theme: "github",
-              lineNumber: true, // 默认显示行号
-              copyCode: true, // 是否显示“复制”按钮
-              editCode: true, // 是否显示“编辑”按钮
-              changeLang: true, // 是否显示“切换语言”按钮              
+              lineNumber: true,
+              copyCode: true,
+              editCode: true,
+              changeLang: true,
+            },
+            mermaid: {
+              svg2img: false,
             },
             table: {
               disableChart: false,
@@ -80,6 +83,12 @@ export function RichTextViewerCM<T>(props: RichTextFileProps<T>) {
           ],
         },
         autoScroll: false,
+        event: {
+          afterChange: (content: string) => {
+            props.onContentChange?.(content)
+          },
+        },
+
       })
     }
   })
@@ -87,7 +96,6 @@ export function RichTextViewerCM<T>(props: RichTextFileProps<T>) {
   createEffect(() => {
     if (cherryInstance && props.file.contents) {
       cherryInstance.setValue(props.file.contents as string)
-      // cherryInstance.setMarkdown(props.file.contents as string)
     }
   })
 

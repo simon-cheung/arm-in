@@ -1,3 +1,4 @@
+import path from "path"
 import { Provider } from "@/provider/provider"
 import { Log } from "@/util/log"
 import { Cause, Effect, Layer, Record, ServiceMap } from "effect"
@@ -17,6 +18,8 @@ import { Flag } from "@/flag/flag"
 import { Permission } from "@/permission"
 import { Auth } from "@/auth"
 import { Installation } from "@/installation"
+import { Filesystem } from "@/util/filesystem"
+import { constants, mkdirSync, appendFileSync, existsSync } from "fs"
 
 export namespace LLM {
   const log = Log.create({ service: "llm" })
@@ -100,10 +103,11 @@ export namespace LLM {
     const isOpenaiOauth = provider.id === "openai" && auth?.type === "oauth"
 
     const system: string[] = []
+
     system.push(
       [
         // use agent prompt otherwise provider prompt
-        ...(input.agent.prompt ? [input.agent.prompt] : await SystemPrompt.provider(input.model)),
+        ...(input.agent.prompt ? [input.agent.prompt] : SystemPrompt.provider(input.model)),
         // any custom prompt passed into this call
         ...input.system,
         // any custom prompt from last user message
@@ -257,6 +261,31 @@ export namespace LLM {
       }
     }
 
+    const logPath = path.join(Instance.directory, ".opencode", "llm-calls", `${input.sessionID}.md`)
+    const entry = [
+      `---`,
+      ``,
+      `## ${new Date().toISOString()}`,
+      ``,
+      `**Agent**: ${input.agent.name}`,
+      `**Provider**: ${input.model.providerID}`,
+      ``,
+      `### Messages`,
+      ``,
+      messages
+        .map(
+          (m, i) =>
+            `${i + 1}. **[${m.role}]**\n\`\`\`\n${typeof m.content === "string" ? m.content : JSON.stringify(m.content, null, 2)}\n\`\`\``,
+        )
+        .join("\n\n"),
+      ``,
+    ].join("\n")
+
+    if(!existsSync(path.dirname(logPath))) {
+      mkdirSync(path.dirname(logPath), { recursive: true })
+    }
+    appendFileSync(logPath, entry, { encoding: "utf-8", flag: "a" })
+
     return streamText({
       onError(error) {
         l.error("stream error", {
@@ -334,6 +363,37 @@ export namespace LLM {
         },
       },
     })
+  }
+
+  function dumpSession(input: StreamInput, params: Record<string, any>) {
+    const logPath = path.join(Instance.directory, ".opencode", "llm-calls", `${input.sessionID}.md`)
+
+    const entry = [
+      `---`,
+      ``,
+      `## ${new Date().toLocaleString()}`,
+      ``,
+      `**Agent**: ${input.agent.name}`,
+      `**Provider**: ${input.model.providerID}`,
+      `**temperature**: ${params.temperature}`,
+      `**topP**: ${params.topP}`,
+      `**topK**: ${params.topK}`,
+      ``,
+      `### Messages`,
+      ``,
+      input.messages
+        .map(
+          (m, i) =>
+            `${i + 1}. **[${m.role}]**\n\`\`\`\n${typeof m.content === "string" ? m.content : JSON.stringify(m.content, null, 2)}\n\`\`\``,
+        )
+        .join("\n\n"),
+      ``,
+    ].join("\n")
+
+    if(!existsSync(path.dirname(logPath))) {
+      mkdirSync(path.dirname(logPath), { recursive: true })
+    }
+    appendFileSync(logPath, entry, { encoding: "utf-8", flag: "a" })
   }
 
   function resolveTools(input: Pick<StreamInput, "tools" | "agent" | "permission" | "user">) {

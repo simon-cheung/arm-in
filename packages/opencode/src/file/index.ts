@@ -330,6 +330,7 @@ export namespace File {
     readonly status: () => Effect.Effect<File.Info[]>
     readonly read: (file: string) => Effect.Effect<File.Content>
     readonly list: (dir?: string) => Effect.Effect<File.Node[]>
+    readonly write: (file: string, content: string) => Effect.Effect<void>
     readonly search: (input: {
       query: string
       limit?: number
@@ -584,6 +585,15 @@ export namespace File {
         return { type: "text" as const, content }
       })
 
+      const write = Effect.fn("File.write")(function* (file: string, content: string) {
+        using _ = log.time("write", { file })
+        const full = path.join(Instance.directory, file)
+
+        if (!Instance.containsPath(full)) throw new Error("Access denied: path escapes project directory")
+
+        yield* Effect.promise(() => Filesystem.write(full, content))
+      })
+
       const list = Effect.fn("File.list")(function* (dir?: string) {
         const exclude = [".git", ".DS_Store"]
         let ignored = (_: string) => false
@@ -656,7 +666,7 @@ export namespace File {
       })
 
       log.info("init")
-      return Service.of({ init, status, read, list, search })
+      return Service.of({ init, status, read, list, write, search })
     }),
   )
 
@@ -674,6 +684,10 @@ export namespace File {
 
   export async function read(file: string): Promise<Content> {
     return runPromise((svc) => svc.read(file))
+  }
+
+  export async function write(file: string, content: string): Promise<void> {
+    return runPromise((svc) => svc.write(file, content))
   }
 
   export async function list(dir?: string) {

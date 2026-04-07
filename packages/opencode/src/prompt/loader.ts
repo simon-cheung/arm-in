@@ -38,6 +38,27 @@ export namespace PromptLoader {
     return entry.builtIn
   }
 
+  export function buildWithVars(
+    content: string,
+    vars: Record<string, string>,
+  ): string {
+    for (const [key, value] of Object.entries(vars)) {
+      content = content.replace(new RegExp(`\\$\\{${key}\\}`, "g"), value)
+    }
+    return content
+  }
+
+  export function getWithVars(
+    name: string,
+    vars: Record<string, string>,
+  ): string {
+    let content =  get(name)
+    for (const [key, value] of Object.entries(vars)) {
+      content = content.replace(new RegExp(`\\$\\{${key}\\}`, "g"), value)
+    }
+    return content
+  }
+
   export async function load(name: string): Promise<string> {
     const cached = asyncCache.get(name)
     if (cached) return cached

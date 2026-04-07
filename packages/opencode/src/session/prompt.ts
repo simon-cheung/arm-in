@@ -248,7 +248,7 @@ export namespace SessionPrompt {
 
         if (!Flag.OPENCODE_EXPERIMENTAL_PLAN_MODE) {
           if (input.agent.name === "plan") {
-            const planPrompt = yield* Effect.promise(() => PromptLoader.load("system.plan"))
+            const planPrompt = input.agent.prompt ?? PromptLoader.get("system.plan")
             userMessage.parts.push({
               id: PartID.ascending(),
               messageID: userMessage.info.id,
@@ -260,7 +260,7 @@ export namespace SessionPrompt {
           }
           const wasPlan = input.messages.some((msg) => msg.info.role === "assistant" && msg.info.agent === "plan")
           if (wasPlan && input.agent.name === "build") {
-            const buildSwitchPrompt = yield* Effect.promise(() => PromptLoader.load("system.build-switch"))
+            const buildSwitchPrompt = PromptLoader.get("system.build-switch")
             userMessage.parts.push({
               id: PartID.ascending(),
               messageID: userMessage.info.id,
@@ -277,7 +277,7 @@ export namespace SessionPrompt {
         if (input.agent.name !== "plan" && assistantMessage?.info.agent === "plan") {
           const plan = Session.plan(input.session)
           if (!(yield* fsys.existsSafe(plan))) return input.messages
-          const buildSwitchPrompt = yield* Effect.promise(() => PromptLoader.load("system.build-switch"))
+          const buildSwitchPrompt = PromptLoader.get("system.build-switch")
           const part = yield* sessions.updatePart({
             id: PartID.ascending(),
             messageID: userMessage.info.id,
@@ -298,13 +298,20 @@ export namespace SessionPrompt {
         const plan = Session.plan(input.session)
         const exists = yield* fsys.existsSafe(plan)
         if (!exists) yield* fsys.ensureDir(path.dirname(plan)).pipe(Effect.catch(Effect.die))
-        const planModeText = yield* Effect.promise(() =>
-          PromptLoader.loadWithVars("plan-mode", {
-            plan_info: exists
-              ? `A plan file already exists at ${plan}. You can read it and make incremental edits using the edit tool.`
-              : `No plan file exists yet. You should create your plan at ${plan} using the write tool.`,
-          }),
-        )
+        // const planModeText = yield* Effect.promise(() =>
+        //   PromptLoader.loadWithVars("plan-mode", {
+        //     plan_info: exists
+        //       ? `A plan file already exists at ${plan}. You can read it and make incremental edits using the edit tool.`
+        //       : `No plan file exists yet. You should create your plan at ${plan} using the write tool.`,
+        //   }),
+        // )
+        let planModeText = input.agent.prompt ?? PromptLoader.get("system.plan-mode")
+        planModeText = PromptLoader.buildWithVars(planModeText, {
+          plan_info: exists
+            ? `A plan file already exists at ${plan}. You can read it and make incremental edits using the edit tool.`
+            : `No plan file exists yet. You should create your plan at ${plan} using the write tool.`,
+        })
+
         const part = yield* sessions.updatePart({
           id: PartID.ascending(),
           messageID: userMessage.info.id,
@@ -1440,7 +1447,7 @@ export namespace SessionPrompt {
                 const format = lastUser.format ?? { type: "text" as const }
                 if (format.type === "json_schema") system.push(PromptLoader.get("system.structured-output-system"))
                 const maxSteps = isLastStep
-                  ? yield* Effect.promise(() => PromptLoader.load("system.max-steps"))
+                  ? PromptLoader.get("system.max-steps")
                   : undefined
                 const result = yield* handle.process({
                   user: lastUser,

@@ -13,6 +13,7 @@ import { Tabs } from "@opencode-ai/ui/tabs"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { showToast } from "@opencode-ai/ui/toast"
 import { selectionFromLines, useFile, type FileSelection, type SelectedLineRange } from "@/context/file"
+import { useSDK } from "@/context/sdk"
 import { useComments } from "@/context/comments"
 import { useLanguage } from "@/context/language"
 import { usePrompt } from "@/context/prompt"
@@ -177,6 +178,7 @@ export function FileTabContent(props: { tab: string }) {
   const language = useLanguage()
   const prompt = usePrompt()
   const fileComponent = useFileComponent()
+  const sdk = useSDK()
   const { sessionKey, tabs, view } = useSessionLayout()
   const activeFileTab = createSessionTabs({
     tabs,
@@ -409,6 +411,12 @@ export function FileTabContent(props: { tab: string }) {
           name: path() ?? "",
           contents: source,
           cacheKey: cacheKey(),
+        }}
+        path={path() ?? undefined}
+        onContentChange={(content: string) => {
+          const p = path()
+          if (!p) return
+          sdk.client.file.write({ path: p, content })
         }}
         enableLineSelection
         enableHoverUtility
