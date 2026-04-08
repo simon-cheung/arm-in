@@ -6,7 +6,6 @@ import { PromptRegistry } from "./registry"
 const PROMPTS_DIR = ".opencode/prompts"
 
 const syncCache = new Map<string, string>()
-const asyncCache = new Map<string, Promise<string>>()
 
 export namespace PromptLoader {
   function getWorkspacePromptPath(name: string): string {
@@ -15,17 +14,25 @@ export namespace PromptLoader {
     return path.join(Instance.directory, PROMPTS_DIR, entry.workspacePath)
   }
 
+  async function loadLatest(entry: any): Promise<string> {
+    let filepath_user = PromptRegistry.getEntryPathLatest(entry, path.join(Instance.directory, PROMPTS_DIR))
+
+    if (await Filesystem.exists(filepath_user)) {
+      const content = await Bun.file(filepath_user).text()
+      return content
+    }
+    return entry.builtIn
+  }
+
   export async function preload(): Promise<void> {
     const entries = PromptRegistry.list()
     await Promise.all(
       entries.map(async (entry) => {
-        const workspacePath = path.join(Instance.directory, PROMPTS_DIR, entry.workspacePath)
-        if (await Filesystem.exists(workspacePath)) {
-          const content = await Bun.file(workspacePath).text()
-          syncCache.set(entry.name, content)
-        } else {
-          syncCache.set(entry.name, entry.builtIn)
+        const content = await loadLatest(entry)
+        if(content.length != entry.builtIn.length){
+          console.log(`Preloaded prompt: ${entry.name}, length differs from built-in`)
         }
+        syncCache.set(entry.name, content)
       }),
     )
   }
@@ -34,7 +41,10 @@ export namespace PromptLoader {
     const cached = syncCache.get(name)
     if (cached) return cached
     const entry = PromptRegistry.get(name)
-    if (!entry) throw new Error(`Unknown prompt: ${name}`)
+    if (!entry) {
+      // console.warn(`Prompt ${name} not found in registry, returning empty string`)
+      return ""
+    }
     return entry.builtIn
   }
 
@@ -60,23 +70,13 @@ export namespace PromptLoader {
   }
 
   export async function load(name: string): Promise<string> {
-    const cached = asyncCache.get(name)
+    const cached = syncCache.get(name)
     if (cached) return cached
 
-    const loadPromise = (async () => {
-      const entry = PromptRegistry.get(name)
-      if (!entry) throw new Error(`Unknown prompt: ${name}`)
-
-      const workspacePath = getWorkspacePromptPath(name)
-      if (await Filesystem.exists(workspacePath)) {
-        const content = await Bun.file(workspacePath).text()
-        return content
-      }
-
-      return entry.builtIn
-    })()
-
-    asyncCache.set(name, loadPromise)
+    const entry = PromptRegistry.get(name)
+    if (!entry) throw new Error(`Unknown prompt: ${name}`)
+    const loadPromise = await loadLatest(entry)
+    syncCache.set(name, loadPromise)
     return loadPromise
   }
 
@@ -104,11 +104,9 @@ export namespace PromptLoader {
 
   export function clearCache(): void {
     syncCache.clear()
-    asyncCache.clear()
   }
 
   export function clearCacheFor(name: string): void {
     syncCache.delete(name)
-    asyncCache.delete(name)
   }
 }

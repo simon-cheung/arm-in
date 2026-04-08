@@ -50,6 +50,8 @@ import { Cause, Effect, Exit, Layer, Option, Scope, ServiceMap } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import { makeRuntime } from "@/effect/run-service"
 
+import { AgentInSession } from "../agent/agent-in-session"
+
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
 
@@ -238,6 +240,20 @@ export namespace SessionPrompt {
           )
       })
 
+      const sessionAgentChange = Effect.fn("SessionPrompt.sessionAgentChange")(function* (input: {
+        messages: MessageV2.WithParts[]
+        ,agent: Agent.Info,
+        session: Session.Info
+      }) {
+        // server does not change agent in the middle of a session, so we only insert reminders based on the latest user message
+        const userMessage = input.messages.findLast((msg) => msg.info.role === "user")
+        if (!userMessage) return input.messages
+
+        let msgs = AgentInSession.onActiveAgent(input)
+        msgs = AgentInSession.onAgentChange(input)
+        return msgs
+      })
+
       const insertReminders = Effect.fn("SessionPrompt.insertReminders")(function* (input: {
         messages: MessageV2.WithParts[]
         agent: Agent.Info
@@ -248,7 +264,7 @@ export namespace SessionPrompt {
 
         if (!Flag.OPENCODE_EXPERIMENTAL_PLAN_MODE) {
           if (input.agent.name === "plan") {
-            const planPrompt = input.agent.prompt ?? PromptLoader.get("system.plan")
+            const planPrompt = PromptLoader.get("reminder.plan")
             userMessage.parts.push({
               id: PartID.ascending(),
               messageID: userMessage.info.id,
@@ -260,7 +276,7 @@ export namespace SessionPrompt {
           }
           const wasPlan = input.messages.some((msg) => msg.info.role === "assistant" && msg.info.agent === "plan")
           if (wasPlan && input.agent.name === "build") {
-            const buildSwitchPrompt = PromptLoader.get("system.build-switch")
+            const buildSwitchPrompt = PromptLoader.get("system.plan-build-switch")
             userMessage.parts.push({
               id: PartID.ascending(),
               messageID: userMessage.info.id,
@@ -277,7 +293,7 @@ export namespace SessionPrompt {
         if (input.agent.name !== "plan" && assistantMessage?.info.agent === "plan") {
           const plan = Session.plan(input.session)
           if (!(yield* fsys.existsSafe(plan))) return input.messages
-          const buildSwitchPrompt = PromptLoader.get("system.build-switch")
+          const buildSwitchPrompt = PromptLoader.get("system.plan-build-switch")
           const part = yield* sessions.updatePart({
             id: PartID.ascending(),
             messageID: userMessage.info.id,
@@ -305,7 +321,7 @@ export namespace SessionPrompt {
         //       : `No plan file exists yet. You should create your plan at ${plan} using the write tool.`,
         //   }),
         // )
-        let planModeText = input.agent.prompt ?? PromptLoader.get("system.plan-mode")
+        let planModeText = PromptLoader.get("reminder.plan-mode")
         planModeText = PromptLoader.buildWithVars(planModeText, {
           plan_info: exists
             ? `A plan file already exists at ${plan}. You can read it and make incremental edits using the edit tool.`
@@ -1367,7 +1383,8 @@ export namespace SessionPrompt {
             }
             const maxSteps = agent.steps ?? Infinity
             const isLastStep = step >= maxSteps
-            msgs = yield* insertReminders({ messages: msgs, agent, session })
+            // msgs = yield* insertReminders({ messages: msgs, agent, session })
+            msgs = yield* sessionAgentChange({ messages: msgs, agent, session })
 
             const msg: MessageV2.Assistant = {
               id: MessageID.ascending(),

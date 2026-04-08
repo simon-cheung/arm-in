@@ -1,3 +1,5 @@
+import path from "path"
+
 import PROMPT_ANTHROPIC from "../session/prompt/anthropic.txt"
 import PROMPT_DEFAULT from "../session/prompt/default.txt"
 import PROMPT_BEAST from "../session/prompt/beast.txt"
@@ -8,7 +10,7 @@ import PROMPT_CODEX from "../session/prompt/codex.txt"
 import PROMPT_TRINITY from "../session/prompt/trinity.txt"
 import PROMPT_PLAN from "../session/prompt/plan.txt"
 import PLAN_MODE from "../session/prompt/plan-mode.txt"
-import BUILD_SWITCH from "../session/prompt/build-switch.txt"
+import BUILD_SWITCH from "../session/prompt/plan-build-switch.txt"
 import MAX_STEPS from "../session/prompt/max-steps.txt"
 import PROMPT_COMPACTION from "../agent/prompt/compaction.txt"
 import PROMPT_EXPLORE from "../agent/prompt/explore.txt"
@@ -39,9 +41,10 @@ import SYSTEM_ENVIRONMENT from "../session/prompt/system-environment.txt"
 import SYSTEM_SKILLS from "../session/prompt/system-skills.txt"
 import TOOL_STRUCTURED_OUTPUT from "../tool/structured-output.txt"
 import STRUCTURED_OUTPUT_SYSTEM from "../session/prompt/structured-output-system.txt"
+import type { Any } from "effect/Schema"
 
 export namespace PromptRegistry {
-  export type Category = "system" | "agent" | "tool" | "command" | "other"
+  export type Category = "system" | "reminder" | "agent" | "tool" | "command" | "other"
 
   export interface Entry {
     category: Category
@@ -60,13 +63,11 @@ export namespace PromptRegistry {
     { category: "system", name: "system.codex", builtIn: PROMPT_CODEX, workspacePath: "system/codex.txt" },
     { category: "system", name: "system.trinity", builtIn: PROMPT_TRINITY, workspacePath: "system/trinity.txt" },
     { category: "system", name: "system.default", builtIn: PROMPT_DEFAULT, workspacePath: "system/default.txt" },
-    { category: "system", name: "system.plan", builtIn: PROMPT_PLAN, workspacePath: "system/plan.txt" },
-    { category: "system", name: "system.plan-mode", builtIn: PLAN_MODE, workspacePath: "system/plan-mode.txt" },
     {
       category: "system",
-      name: "system.build-switch",
+      name: "system.plan-build-switch",
       builtIn: BUILD_SWITCH,
-      workspacePath: "system/build-switch.txt",
+      workspacePath: "system/plan-build-switch.txt",
     },
     { category: "system", name: "system.max-steps", builtIn: MAX_STEPS, workspacePath: "system/max-steps.txt" },
     {
@@ -87,6 +88,8 @@ export namespace PromptRegistry {
       builtIn: STRUCTURED_OUTPUT_SYSTEM,
       workspacePath: "system/structured-output-system.txt",
     },
+    { category: "reminder", name: "reminder.plan", builtIn: PROMPT_PLAN, workspacePath: "reminder/plan.txt" },
+    { category: "reminder", name: "reminder.plan-mode", builtIn: PLAN_MODE, workspacePath: "reminder/plan-mode.txt" },
 
     // Agent prompts
     { category: "agent", name: "agent.explore", builtIn: PROMPT_EXPLORE, workspacePath: "agent/explore.txt" },
@@ -148,4 +151,16 @@ export namespace PromptRegistry {
   export function criticalSystemPrompts(): Entry[] {
     return entries.filter((e) => e.category === "system" && ["plan", "build-switch", "max-steps"].includes(e.name))
   }
+
+  export function getEntryPathForScaffoldWrite(entry: any, cachePath: string): string {
+    const ext = path.extname(entry.workspacePath)
+    let userCustom = entry.workspacePath.replace(ext, `-no-edit${ext}`)
+    return path.join(cachePath, userCustom)
+  }
+
+  export function getEntryPathLatest(entry: any, cachePath: string): string {
+    const ext = path.extname(entry.workspacePath)
+    let userCustom = entry.workspacePath.replace(ext, `-user${ext}`)
+    return path.join(cachePath, userCustom)
+  }  
 }

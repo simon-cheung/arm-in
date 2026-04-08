@@ -3,6 +3,7 @@ import { mkdir } from "fs/promises"
 import { Instance } from "@/project/instance"
 import { Filesystem } from "@/util/filesystem"
 import { PromptRegistry } from "./registry"
+import { Installation } from "@/installation"
 
 const PROMPTS_DIR = ".opencode/prompts"
 const SCAFFOLD_MARKER = ".scaffolded"
@@ -20,13 +21,20 @@ export namespace PromptScaffold {
     return Filesystem.exists(getMarkerPath())
   }
 
-  export async function ensureCriticalPrompts(): Promise<void> {
-    await scaffold()
-  }
-
-  export async function scaffold(): Promise<void> {
+  export async function checkScaffold(): Promise<void> {
     const promptsDir = getPromptsDir()
     const markerPath = getMarkerPath()
+
+    if (await Filesystem.exists(markerPath)) {
+      let markerContent = await Bun.file(markerPath).text()
+      try {
+        const markerJson = JSON.parse(markerContent)
+        if(markerJson.version === Installation.VERSION){
+          return
+        }
+      } catch (e) {
+      }
+    }
 
     const entries = PromptRegistry.list()
     const categories = new Set(entries.map((e) => path.dirname(e.workspacePath)))
@@ -39,20 +47,19 @@ export namespace PromptScaffold {
     }
 
     for (const entry of entries) {
-      const filePath = path.join(promptsDir, entry.workspacePath)
+      const filePath = PromptRegistry.getEntryPathForScaffoldWrite(entry, promptsDir)
       if (!(await Filesystem.exists(filePath))) {
         await Bun.write(filePath, entry.builtIn)
       }
     }
 
-    if (!(await Filesystem.exists(markerPath))) {
-      await Bun.write(
-        markerPath,
-        JSON.stringify({
-          version: 1,
-          scaffoldedAt: new Date().toISOString(),
-        }),
-      )
-    }
+    await Bun.write(
+      markerPath,
+      JSON.stringify({
+        version: `${Installation.VERSION}`,
+        scaffoldedAt: new Date().toISOString(),
+        tips: "Do not Edit the scaffolded prompts directly. If you want to customize, please copy the content to a new file with the same name but with '-user' suffix before the extension, and edit the new file.",
+      }),
+    )    
   }
 }

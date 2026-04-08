@@ -261,31 +261,6 @@ export namespace LLM {
       }
     }
 
-    const logPath = path.join(Instance.directory, ".opencode", "llm-calls", `${input.sessionID}.md`)
-    const entry = [
-      `---`,
-      ``,
-      `## ${new Date().toISOString()}`,
-      ``,
-      `**Agent**: ${input.agent.name}`,
-      `**Provider**: ${input.model.providerID}`,
-      ``,
-      `### Messages`,
-      ``,
-      messages
-        .map(
-          (m, i) =>
-            `${i + 1}. **[${m.role}]**\n\`\`\`\n${typeof m.content === "string" ? m.content : JSON.stringify(m.content, null, 2)}\n\`\`\``,
-        )
-        .join("\n\n"),
-      ``,
-    ].join("\n")
-
-    if(!existsSync(path.dirname(logPath))) {
-      mkdirSync(path.dirname(logPath), { recursive: true })
-    }
-    appendFileSync(logPath, entry, { encoding: "utf-8", flag: "a" })
-
     return streamText({
       onError(error) {
         l.error("stream error", {

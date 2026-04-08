@@ -69,7 +69,7 @@ console.log(`Building: ${[...selected].join(", ")}`)
 
 if (selected.has("opencode")) {
   console.log("\n=== Building opencode ===")
-  await $`bun run --cwd packages/app build`
+  await $`bun run --cwd packages/opencode build`
 }
 
 if (selected.has("sdk")) {
