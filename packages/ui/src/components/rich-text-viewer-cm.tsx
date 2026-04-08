@@ -34,28 +34,17 @@ export function RichTextViewerCM<T>(props: RichTextViewerProps<T>) {
         engine: {
           global: {
             htmlWhiteList: "",
-            cssSource: "cherry",
           },
           syntax: {
             codeBlock: {
-              theme: "github",
               lineNumber: true,
               copyCode: true,
               editCode: true,
               changeLang: true,
             },
-            mermaid: {
-              svg2img: false,
-            },
             table: {
-              disableChart: false,
             },
           },
-          echarts,
-        },
-        editor: {
-          enablePreview: false,
-          editMask: false,
         },
         toolbars: {
           theme: "light",
@@ -82,7 +71,6 @@ export function RichTextViewerCM<T>(props: RichTextViewerProps<T>) {
             "fullScreen",
           ],
         },
-        autoScroll: false,
         event: {
           afterChange: (content: string) => {
             props.onContentChange?.(content)

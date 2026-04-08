@@ -27,7 +27,6 @@ import TOOL_WEBFETCH from "../tool/webfetch.txt"
 import TOOL_WEBSEARCH from "../tool/websearch.txt"
 import TOOL_QUESTION from "../tool/question.txt"
 import TOOL_TODOWRITE from "../tool/todowrite.txt"
-import TOOL_BATCH from "../tool/batch.txt"
 import TOOL_LS from "../tool/ls.txt"
 import TOOL_LSP from "../tool/lsp.txt"
 import TOOL_MULTIEDIT from "../tool/multiedit.txt"
@@ -110,7 +109,6 @@ export namespace PromptRegistry {
     { category: "tool", name: "tool.websearch", builtIn: TOOL_WEBSEARCH, workspacePath: "tool/websearch.txt" },
     { category: "tool", name: "tool.question", builtIn: TOOL_QUESTION, workspacePath: "tool/question.txt" },
     { category: "tool", name: "tool.todowrite", builtIn: TOOL_TODOWRITE, workspacePath: "tool/todowrite.txt" },
-    { category: "tool", name: "tool.batch", builtIn: TOOL_BATCH, workspacePath: "tool/batch.txt" },
     { category: "tool", name: "tool.ls", builtIn: TOOL_LS, workspacePath: "tool/ls.txt" },
     { category: "tool", name: "tool.lsp", builtIn: TOOL_LSP, workspacePath: "tool/lsp.txt" },
     { category: "tool", name: "tool.multiedit", builtIn: TOOL_MULTIEDIT, workspacePath: "tool/multiedit.txt" },
