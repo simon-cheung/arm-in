@@ -11,7 +11,6 @@ import { Provider } from "../provider/provider"
 import { ModelID, ProviderID } from "../provider/schema"
 import { type Tool as AITool, tool, jsonSchema, type ToolExecutionOptions, asSchema } from "ai"
 import { SessionCompaction } from "./compaction"
-import { Instance } from "../project/instance"
 import { Bus } from "../bus"
 import { ProviderTransform } from "../provider/transform"
 import { SystemPrompt } from "./system"
@@ -23,7 +22,6 @@ import { ToolRegistry } from "../tool/registry"
 import { Runner } from "@/effect/runner"
 import { MCP } from "../mcp"
 import { LSP } from "../lsp"
-import { ReadTool } from "../tool/read"
 import { FileTime } from "../file/time"
 import { Flag } from "../flag/flag"
 import { ulid } from "ulid"
@@ -36,7 +34,6 @@ import { ConfigMarkdown } from "../config/markdown"
 import { SessionSummary } from "./summary"
 import { NamedError } from "@opencode-ai/util/error"
 import { SessionProcessor } from "./processor"
-import { TaskTool } from "@/tool/task"
 import { Tool } from "@/tool/tool"
 import { Permission } from "@/permission"
 import { SessionStatus } from "./status"
@@ -49,6 +46,7 @@ import { Process } from "@/util/process"
 import { Cause, Effect, Exit, Layer, Option, Scope, ServiceMap } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import { makeRuntime } from "@/effect/run-service"
+import { TaskTool } from "@/tool/task"
 
 import { AgentInSession } from "../agent/agent-in-session"
 
@@ -388,10 +386,11 @@ export namespace SessionPrompt {
             ),
         })
 
-        for (const item of yield* registry.tools(
-          { modelID: ModelID.make(input.model.api.id), providerID: input.model.providerID },
-          input.agent,
-        )) {
+        for (const item of yield* registry.tools({
+          modelID: ModelID.make(input.model.api.id),
+          providerID: input.model.providerID,
+          agent: input.agent,
+        })) {
           const schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
           tools[item.id] = tool({
             id: item.id as any,
@@ -515,7 +514,7 @@ export namespace SessionPrompt {
       }) {
         const { task, model, lastUser, sessionID, session, msgs } = input
         const ctx = yield* InstanceState.context
-        const taskTool = yield* Effect.promise(() => registry.named.task.init())
+        const taskTool = yield* registry.fromID(TaskTool.id)
         const taskModel = task.model ? yield* getModel(task.model.providerID, task.model.modelID, sessionID) : model
         const assistantMessage: MessageV2.Assistant = yield* sessions.updateMessage({
           id: MessageID.ascending(),
@@ -524,7 +523,7 @@ export namespace SessionPrompt {
           sessionID,
           mode: task.agent,
           agent: task.agent,
-          variant: lastUser.variant,
+          variant: lastUser.model.variant,
           path: { cwd: ctx.directory, root: ctx.worktree },
           cost: 0,
           tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
@@ -538,7 +537,7 @@ export namespace SessionPrompt {
           sessionID: assistantMessage.sessionID,
           type: "tool",
           callID: ulid(),
-          tool: registry.named.task.id,
+          tool: TaskTool.id,
           state: {
             status: "running",
             input: {
@@ -922,17 +921,20 @@ export namespace SessionPrompt {
             : undefined
         const variant = input.variant ?? (ag.variant && full?.variants?.[ag.variant] ? ag.variant : undefined)
 
-        const info: MessageV2.Info = {
+        const info: MessageV2.User = {
           id: input.messageID ?? MessageID.ascending(),
           role: "user",
           sessionID: input.sessionID,
           time: { created: Date.now() },
           tools: input.tools,
           agent: ag.name,
-          model,
+          model: {
+            providerID: model.providerID,
+            modelID: model.modelID,
+            variant,
+          },
           system: input.system,
           format: input.format,
-          variant,
         }
 
         yield* Effect.addFinalizer(() =>
@@ -1065,7 +1067,7 @@ export namespace SessionPrompt {
                       text: `Called the Read tool with the following input: ${JSON.stringify(args)}`,
                     },
                   ]
-                  const read = yield* Effect.promise(() => registry.named.read.init()).pipe(
+                  const read = yield* registry.fromID("read").pipe(
                     Effect.flatMap((t) =>
                       provider.getModel(info.model.providerID, info.model.modelID).pipe(
                         Effect.flatMap((mdl) =>
@@ -1129,7 +1131,7 @@ export namespace SessionPrompt {
 
                 if (part.mime === "application/x-directory") {
                   const args = { filePath: filepath }
-                  const result = yield* Effect.promise(() => registry.named.read.init()).pipe(
+                  const result = yield* registry.fromID("read").pipe(
                     Effect.flatMap((t) =>
                       Effect.promise(() =>
                         t.execute(args, {
@@ -1392,7 +1394,7 @@ export namespace SessionPrompt {
               role: "assistant",
               mode: agent.name,
               agent: agent.name,
-              variant: lastUser.variant,
+              variant: lastUser.model.variant,
               path: { cwd: ctx.directory, root: ctx.worktree },
               cost: 0,
               tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },

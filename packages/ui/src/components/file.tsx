@@ -3,6 +3,7 @@ import {
   DEFAULT_VIRTUAL_FILE_METRICS,
   type DiffLineAnnotation,
   type FileContents,
+  type FileDiffMetadata,
   File as PierreFile,
   type FileDiffOptions,
   FileDiff,
@@ -14,7 +15,7 @@ import {
   VirtualizedFileDiff,
   Virtualizer,
 } from "@pierre/diffs"
-import { type PreloadMultiFileDiffResult } from "@pierre/diffs/ssr"
+import { type PreloadFileDiffResult, type PreloadMultiFileDiffResult } from "@pierre/diffs/ssr"
 import { createMediaQuery } from "@solid-primitives/media"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { ComponentProps, createEffect, createMemo, createSignal, onCleanup, onMount, Show, splitProps } from "solid-js"
@@ -83,13 +84,13 @@ export type TextFileProps<T = {}> = FileOptions<T> &
     preloadedDiff?: PreloadMultiFileDiffResult<T>
   }
 
-export type DiffFileProps<T = {}> = FileDiffOptions<T> &
+type DiffPreload<T> = PreloadMultiFileDiffResult<T> | PreloadFileDiffResult<T>
+
+type DiffBaseProps<T> = FileDiffOptions<T> &
   SharedProps<T> & {
     mode: "diff"
-    before: FileContents
-    after: FileContents
     annotations?: DiffLineAnnotation<T>[]
-    preloadedDiff?: PreloadMultiFileDiffResult<T>
+    preloadedDiff?: DiffPreload<T>
   }
 
 export type RichTextViewerProps<T = {}> = {
@@ -116,6 +117,20 @@ export type RichTextFileProps<T = {}> = RichTextViewerProps<T> & {
   mode: "rich-text"
 }
 
+type DiffPairProps<T> = DiffBaseProps<T> & {
+  before: FileContents
+  after: FileContents
+  fileDiff?: undefined
+}
+
+type DiffPatchProps<T> = DiffBaseProps<T> & {
+  fileDiff: FileDiffMetadata
+  before?: undefined
+  after?: undefined
+}
+
+export type DiffFileProps<T = {}> = DiffPairProps<T> | DiffPatchProps<T>
+
 export type FileProps<T = {}> = TextFileProps<T> | DiffFileProps<T> | RichTextFileProps<T>
 
 const sharedKeys = [
@@ -135,7 +150,7 @@ const sharedKeys = [
 ] as const
 
 const textKeys = ["file", ...sharedKeys] as const
-const diffKeys = ["before", "after", ...sharedKeys] as const
+const diffKeys = ["fileDiff", "before", "after", ...sharedKeys] as const
 
 // ---------------------------------------------------------------------------
 // Shared viewer hook
@@ -1003,6 +1018,12 @@ function DiffViewer<T>(props: DiffFileProps<T>) {
   const virtuals = createSharedVirtualStrategy(() => viewer.container)
 
   const large = createMemo(() => {
+    if (local.fileDiff) {
+      const before = local.fileDiff.deletionLines.join("")
+      const after = local.fileDiff.additionLines.join("")
+      return Math.max(before.length, after.length) > 500_000
+    }
+
     const before = typeof local.before?.contents === "string" ? local.before.contents : ""
     const after = typeof local.after?.contents === "string" ? local.after.contents : ""
     return Math.max(before.length, after.length) > 500_000
@@ -1081,6 +1102,17 @@ function DiffViewer<T>(props: DiffFileProps<T>) {
         instance = value
       },
       draw: (value) => {
+        if (local.fileDiff) {
+          value.render({
+            fileDiff: local.fileDiff,
+            lineAnnotations: [],
+            containerWrapper: viewer.container,
+          })
+          return
+        }
+
+        if (!local.before || !local.after) return
+
         value.render({
           oldFile: { ...local.before, contents: beforeContents, cacheKey: cacheKey(beforeContents) },
           newFile: { ...local.after, contents: afterContents, cacheKey: cacheKey(afterContents) },
