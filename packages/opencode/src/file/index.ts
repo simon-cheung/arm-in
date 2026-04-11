@@ -1,3 +1,4 @@
+import { Bus } from "@/bus"
 import { BusEvent } from "@/bus/bus-event"
 import { InstanceState } from "@/effect/instance-state"
 import { makeRuntime } from "@/effect/run-service"
@@ -12,6 +13,8 @@ import z from "zod"
 import { Global } from "../global"
 import { Instance } from "../project/instance"
 import { Log } from "../util/log"
+import { FileWatcher } from "./watcher"
+import { Filesystem } from "../util/filesystem"
 import { Protected } from "./protected"
 import { Ripgrep } from "./ripgrep"
 
@@ -328,6 +331,7 @@ export namespace File {
     readonly init: () => Effect.Effect<void>
     readonly status: () => Effect.Effect<File.Info[]>
     readonly read: (file: string) => Effect.Effect<File.Content>
+    readonly write: (file: string, content: string) => Effect.Effect<void>
     readonly list: (dir?: string) => Effect.Effect<File.Node[]>
     readonly search: (input: {
       query: string
@@ -567,6 +571,31 @@ export namespace File {
         return { type: "text" as const, content }
       })
 
+      const write = Effect.fn("File.write")(function* (file: string, content: string) {
+        // using _ = log.time("write", { file })
+        // const full = path.join(Instance.directory, file)
+
+        // if (!Instance.containsPath(full)) throw new Error("Access denied: path escapes project directory")
+
+        // const exists = yield* appFs.existsSafe(full)
+        // yield* appFs.writeWithDirs(full, content).pipe(Effect.orDie)
+
+        // Bus.publish(File.Event.Edited, { file })
+        // Bus.publish(FileWatcher.Event.Updated, {
+        //   file,
+        //   event: exists ? "change" : "add",
+        // })
+
+        const write = Effect.fn("File.write")(function* (file: string, content: string) {
+          using _ = log.time("write", { file })
+          const full = path.join(Instance.directory, file)
+
+          if (!Instance.containsPath(full)) throw new Error("Access denied: path escapes project directory")
+          // direct write, do not watch
+          yield* Effect.promise(() => Filesystem.write(full, content))
+        })        
+      })
+
       const list = Effect.fn("File.list")(function* (dir?: string) {
         const exclude = [".git", ".DS_Store"]
         let ignored = (_: string) => false
@@ -639,7 +668,7 @@ export namespace File {
       })
 
       log.info("init")
-      return Service.of({ init, status, read, list, search })
+      return Service.of({ init, status, read, write, list, search })
     }),
   )
 
@@ -657,6 +686,10 @@ export namespace File {
 
   export async function read(file: string): Promise<Content> {
     return runPromise((svc) => svc.read(file))
+  }
+
+  export async function write(file: string, content: string): Promise<void> {
+    return runPromise((svc) => svc.write(file, content))
   }
 
   export async function list(dir?: string) {
