@@ -5,6 +5,7 @@ import type { UpgradeWebSocket } from "hono/ws"
 import z from "zod"
 import { createHash } from "node:crypto"
 import * as fs from "node:fs/promises"
+import * as path from "node:path"
 import { Log } from "../util/log"
 import { Format } from "../format"
 import { TuiRoutes } from "./routes/tui"
@@ -30,6 +31,20 @@ import { ProviderRoutes } from "./routes/provider"
 import { EventRoutes } from "./routes/event"
 import { errorHandler } from "./middleware"
 import { getMimeType } from "hono/utils/mime"
+
+const mimeMap: Record<string, string> = {
+  ".css": "text/css",
+  ".js": "application/javascript",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+}
 
 const log = Log.create({ service: "server" })
 
@@ -281,11 +296,62 @@ export const InstanceRoutes = (upgrade: UpgradeWebSocket, app: Hono = new Hono()
       },
     )
     .all("/*", async (c) => {
+      const urlPath = c.req.path
+      console.log(`[InstanceRoutes] ${c.req.method} ${urlPath}`)
+
+      // Check if this looks like a static file request (has a file extension)
+      // and is not an API path - serve from local filesystem
+      if (
+        urlPath.includes(".") &&
+        !urlPath.startsWith("/session") &&
+        !urlPath.startsWith("/project") &&
+        !urlPath.startsWith("/file") &&
+        !urlPath.startsWith("/provider")
+      ) {
+        // URL format: /.apps/{base64EncodedWorkspaceDir}/{relativePath}
+        // relativePath is like mars_hmap/index.html (the part after .apps/)
+        let remaining = urlPath.startsWith("/") ? urlPath.slice(1) : urlPath
+        remaining = remaining.replace(/^\.apps\//, "")
+
+        // Extract workspace directory (base64 encoded) and file path
+        const firstSlash = remaining.indexOf("/")
+        let workspaceDir = Instance.directory
+        let filePath = remaining
+
+        if (firstSlash > 0) {
+          const encodedDir = remaining.substring(0, firstSlash)
+          try {
+            // Decode base64 to get workspace directory
+            workspaceDir = Buffer.from(encodedDir, "base64").toString("utf8")
+            // filePath is the rest after the encoded dir
+            filePath = remaining.substring(firstSlash + 1)
+            // Prepend .apps/ to get the full relative path from workspace root
+            filePath = `.apps/${filePath}`
+          } catch {
+            // Invalid base64, use default workspace
+          }
+        }
+
+        if (!filePath.includes("..")) {
+          const fullPath = path.join(workspaceDir, filePath)
+          try {
+            await fs.access(fullPath)
+            const bytes = await fs.readFile(fullPath)
+            const ext = path.extname(filePath).toLowerCase()
+            const mimeType = mimeMap[ext] || getMimeType(filePath) || "application/octet-stream"
+            c.header("Content-Type", mimeType)
+            return c.body(new Uint8Array(bytes))
+          } catch {
+            // File doesn't exist, continue to normal handling
+          }
+        }
+      }
+
       const embeddedWebUI = await embeddedUIPromise
-      const path = c.req.path
+      const reqPath = urlPath
 
       if (embeddedWebUI) {
-        const match = embeddedWebUI[path.replace(/^\//, "")] ?? embeddedWebUI["index.html"] ?? null
+        const match = embeddedWebUI[reqPath.replace(/^\//, "")] ?? embeddedWebUI["index.html"] ?? null
         if (!match) return c.json({ error: "Not Found" }, 404)
 
         if (await fs.exists(match)) {
@@ -299,7 +365,7 @@ export const InstanceRoutes = (upgrade: UpgradeWebSocket, app: Hono = new Hono()
           return c.json({ error: "Not Found" }, 404)
         }
       } else {
-        const response = await proxy(`https://app.opencode.ai${path}`, {
+        const response = await proxy(`https://app.opencode.ai${reqPath}`, {
           ...c.req,
           headers: {
             ...c.req.raw.headers,

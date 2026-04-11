@@ -403,7 +403,7 @@ export function FileTabContent(props: { tab: string }) {
   })
 
   const renderFile = (source: string) => (
-    <div class="relative overflow-hidden pb-40">
+    <div class="relative overflow-hidden pb-40 h-full">
       <Dynamic
         component={fileComponent}
         mode="text"
@@ -440,7 +440,9 @@ export function FileTabContent(props: { tab: string }) {
         media={{
           mode: "auto",
           path: path(),
+          directory: sdk.directory,
           current: state()?.content,
+          serverUrl: sdk.url,
           onLoad: scrollSync.queueRestore,
           onError: (args: { kind: "image" | "audio" | "svg" }) => {
             if (args.kind !== "svg") return

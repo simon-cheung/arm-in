@@ -1,0 +1,12 @@
+.html-viewer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.html-viewer-iframe {
+  flex: 1;
+  min-height: 0;
+  border: 0;
+}

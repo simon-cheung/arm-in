@@ -13,6 +13,7 @@ import {
 export type FileMediaOptions = {
   mode?: "auto" | "off"
   path?: string
+  directory?: string
   current?: unknown
   before?: unknown
   after?: unknown
@@ -20,6 +21,7 @@ export type FileMediaOptions = {
   readFile?: (path: string) => Promise<FileContent | undefined>
   onLoad?: () => void
   onError?: (ctx: { kind: "image" | "audio" | "svg" }) => void
+  serverUrl?: string
 }
 
 function mediaValue(cfg: FileMediaOptions, mode: "image" | "audio") {

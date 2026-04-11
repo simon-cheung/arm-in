@@ -46,6 +46,7 @@ import { FileMedia, type FileMediaOptions } from "./file-media"
 import { FileSearchBar } from "./file-search"
 import { RichTextViewer } from "./rich-text-viewer"
 import { RichTextViewerCM } from "./rich-text-viewer-cm"
+import { HtmlViewer } from "./html-viewer"
 import { prop } from "remeda"
 
 const VIRTUALIZE_BYTES = 500_000
@@ -1148,11 +1149,22 @@ function DiffViewer<T>(props: DiffFileProps<T>) {
 // ---------------------------------------------------------------------------
 
 const MARKDOWN_EXTS = [".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdtxt"]
+const HTML_EXTS = [".html", ".htm"]
 
 function isRichTextFile(file: { name: string }): boolean {
   const match = file.name.match(/\.[^.]+$/)
   if (!match) return false
   return MARKDOWN_EXTS.includes(match[0].toLowerCase())
+}
+
+function isHtmlFile(path?: string): boolean {
+  if (!path) return false
+  // path could be either relative like ".apps/foo/bar.html" or absolute like "/Users/xxx/project/.apps/foo/bar.html"
+  const normalizedPath = path.includes(".apps/") ? path.substring(path.indexOf(".apps/")) : path
+  if (!normalizedPath.startsWith(".apps/")) return false
+  const match = normalizedPath.match(/\.[^.]+$/)
+  if (!match) return false
+  return HTML_EXTS.includes(match[0].toLowerCase())
 }
 
 export function File<T>(props: FileProps<T>) {
@@ -1167,6 +1179,22 @@ export function File<T>(props: FileProps<T>) {
     if (useRichText) {
       return (
         <FileMedia media={props.media} fallback={() => <RichTextViewerCM {...(props as RichTextViewerProps<T>)} />} />
+      )
+    }
+    const useHtml = isHtmlFile(props.media?.path)
+    if (useHtml) {
+      return (
+        <FileMedia
+          media={props.media}
+          fallback={() => (
+            <HtmlViewer
+              file={props.file}
+              path={props.media?.path}
+              directory={props.media?.directory}
+              serverUrl={props.media?.serverUrl}
+            />
+          )}
+        />
       )
     }
     return (

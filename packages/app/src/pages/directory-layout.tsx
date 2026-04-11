@@ -55,6 +55,8 @@ export default function Layout(props: ParentProps) {
   createEffect(() => {
     const dir = params.dir
     if (!dir) return
+    // Skip .apps paths - let server handle static file serving
+    if (dir === ".apps" || dir.startsWith(".apps/")) return
     if (resolved()) {
       invalid = ""
       return
