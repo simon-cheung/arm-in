@@ -8,7 +8,7 @@ import { Tool } from "./tool"
 import { AppFileSystem } from "../filesystem"
 import { LSP } from "../lsp"
 import { FileTime } from "../file/time"
-import { PromptLoader } from "@/prompt"
+import DESCRIPTION from "./read.txt"
 import { Instance } from "../project/instance"
 import { assertExternalDirectoryEffect } from "./external-directory"
 import { Instruction } from "../session/instruction"
@@ -67,9 +67,7 @@ export const ReadTool = Tool.defineEffect(
           if (item.type === "directory") return item.name + "/"
           if (item.type !== "symlink") return item.name
 
-          const target = yield* fs
-            .stat(path.join(filepath, item.name))
-            .pipe(Effect.catch(() => Effect.succeed(undefined)))
+          const target = yield* fs.stat(path.join(filepath, item.name)).pipe(Effect.catch(() => Effect.void))
           if (target?.type === "Directory") return item.name + "/"
           return item.name
         }),
@@ -218,7 +216,7 @@ export const ReadTool = Tool.defineEffect(
     })
 
     return {
-      description: PromptLoader.get("tool.read"),
+      description: DESCRIPTION,
       parameters,
       async execute(params: z.infer<typeof parameters>, ctx) {
         return Effect.runPromise(run(params, ctx).pipe(Effect.orDie))

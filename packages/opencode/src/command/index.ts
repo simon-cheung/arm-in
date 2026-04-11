@@ -8,7 +8,8 @@ import { Config } from "../config/config"
 import { MCP } from "../mcp"
 import { Skill } from "../skill"
 import { Log } from "../util/log"
-import { PromptLoader } from "@/prompt"
+import PROMPT_INITIALIZE from "./template/initialize.txt"
+import PROMPT_REVIEW from "./template/review.txt"
 
 export namespace Command {
   const log = Log.create({ service: "command" })
@@ -87,19 +88,19 @@ export namespace Command {
           description: "guided AGENTS.md setup",
           source: "command",
           get template() {
-            return PromptLoader.get("command.initialize").replace(/\$\{path\}/g, ctx.worktree)
+            return PROMPT_INITIALIZE.replace("${path}", ctx.worktree)
           },
-          hints: hints(PromptLoader.get("command.initialize")),
+          hints: hints(PROMPT_INITIALIZE),
         }
         commands[Default.REVIEW] = {
           name: Default.REVIEW,
           description: "review changes [commit|branch|pr], defaults to uncommitted",
           source: "command",
           get template() {
-            return PromptLoader.get("command.review").replace(/\$\{path\}/g, ctx.worktree)
+            return PROMPT_REVIEW.replace("${path}", ctx.worktree)
           },
           subtask: true,
-          hints: hints(PromptLoader.get("command.review")),
+          hints: hints(PROMPT_REVIEW),
         }
 
         for (const [name, command] of Object.entries(cfg.command ?? {})) {

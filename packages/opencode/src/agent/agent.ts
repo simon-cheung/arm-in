@@ -8,7 +8,11 @@ import { Truncate } from "../tool/truncate"
 import { Auth } from "../auth"
 import { ProviderTransform } from "../provider/transform"
 
-import { PromptLoader } from "@/prompt"
+import PROMPT_GENERATE from "./generate.txt"
+import PROMPT_COMPACTION from "./prompt/compaction.txt"
+import PROMPT_EXPLORE from "./prompt/explore.txt"
+import PROMPT_SUMMARY from "./prompt/summary.txt"
+import PROMPT_TITLE from "./prompt/title.txt"
 import { Permission } from "@/permission"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@/global"
@@ -176,7 +180,7 @@ export namespace Agent {
                 user,
               ),
               description: `Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. "src/components/**/*.tsx"), search code for keywords (eg. "API endpoints"), or answer questions about the codebase (eg. "how do API endpoints work?"). When calling this agent, specify the desired thoroughness level: "quick" for basic searches, "medium" for moderate exploration, or "very thorough" for comprehensive analysis across multiple locations and naming conventions.`,
-              prompt: PromptLoader.get("agent.explore"),
+              prompt: PROMPT_EXPLORE,
               options: {},
               mode: "subagent",
               native: true,
@@ -186,7 +190,7 @@ export namespace Agent {
               mode: "primary",
               native: true,
               hidden: true,
-              prompt: PromptLoader.get("agent.compaction"),
+              prompt: PROMPT_COMPACTION,
               permission: Permission.merge(
                 defaults,
                 Permission.fromConfig({
@@ -210,7 +214,7 @@ export namespace Agent {
                 }),
                 user,
               ),
-              prompt: PromptLoader.get("agent.title"),
+              prompt: PROMPT_TITLE,
             },
             summary: {
               name: "summary",
@@ -225,7 +229,7 @@ export namespace Agent {
                 }),
                 user,
               ),
-              prompt: PromptLoader.get("agent.summary"),
+              prompt: PROMPT_SUMMARY,
             },
           }
 
@@ -331,11 +335,15 @@ export namespace Agent {
           const resolved = yield* provider.getModel(model.providerID, model.modelID)
           const language = yield* provider.getLanguage(resolved)
 
-          const system = [PromptLoader.get("agent.generate")]
+          const system = [PROMPT_GENERATE]
           yield* Effect.promise(() =>
             Plugin.trigger("experimental.chat.system.transform", { model: resolved }, { system }),
           )
           const existing = yield* InstanceState.useEffect(state, (s) => s.list())
+
+          // TODO: clean this up so provider specific logic doesnt bleed over
+          const authInfo = yield* auth.get(model.providerID).pipe(Effect.orDie)
+          const isOpenaiOauth = model.providerID === "openai" && authInfo?.type === "oauth"
 
           const params = {
             experimental_telemetry: {
@@ -346,12 +354,14 @@ export namespace Agent {
             },
             temperature: 0.3,
             messages: [
-              ...system.map(
-                (item): ModelMessage => ({
-                  role: "system",
-                  content: item,
-                }),
-              ),
+              ...(isOpenaiOauth
+                ? []
+                : system.map(
+                    (item): ModelMessage => ({
+                      role: "system",
+                      content: item,
+                    }),
+                  )),
               {
                 role: "user",
                 content: `Create an agent configuration based on this request: \"${input.description}\".\n\nIMPORTANT: The following identifiers already exist and must NOT be used: ${existing.map((i) => i.name).join(", ")}\n  Return ONLY the JSON object, no other text, do not wrap in backticks`,
@@ -365,13 +375,12 @@ export namespace Agent {
             }),
           } satisfies Parameters<typeof generateObject>[0]
 
-          // TODO: clean this up so provider specific logic doesnt bleed over
-          const authInfo = yield* auth.get(model.providerID).pipe(Effect.orDie)
-          if (model.providerID === "openai" && authInfo?.type === "oauth") {
+          if (isOpenaiOauth) {
             return yield* Effect.promise(async () => {
               const result = streamObject({
                 ...params,
                 providerOptions: ProviderTransform.providerOptions(resolved, {
+                  instructions: system.join("\n"),
                   store: false,
                 }),
                 onError: () => {},
@@ -389,11 +398,13 @@ export namespace Agent {
     }),
   )
 
-  export const defaultLayer = layer.pipe(
-    Layer.provide(Provider.defaultLayer),
-    Layer.provide(Auth.defaultLayer),
-    Layer.provide(Config.defaultLayer),
-    Layer.provide(Skill.defaultLayer),
+  export const defaultLayer = Layer.suspend(() =>
+    layer.pipe(
+      Layer.provide(Provider.defaultLayer),
+      Layer.provide(Auth.defaultLayer),
+      Layer.provide(Config.defaultLayer),
+      Layer.provide(Skill.defaultLayer),
+    ),
   )
 
   const { runPromise } = makeRuntime(Service, defaultLayer)

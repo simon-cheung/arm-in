@@ -1,7 +1,7 @@
 import z from "zod"
 import { Effect } from "effect"
 import { Tool } from "./tool"
-import { PromptLoader } from "@/prompt"
+import DESCRIPTION_WRITE from "./todowrite.txt"
 import { Todo } from "../session/todo"
 
 const parameters = z.object({
@@ -18,7 +18,7 @@ export const TodoWriteTool = Tool.defineEffect<typeof parameters, Metadata, Todo
     const todo = yield* Todo.Service
 
     return {
-      description: PromptLoader.get("tool.todowrite"),
+      description: DESCRIPTION_WRITE,
       parameters,
       async execute(params: z.infer<typeof parameters>, ctx: Tool.Context<Metadata>) {
         await ctx.ask({
