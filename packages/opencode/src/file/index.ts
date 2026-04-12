@@ -586,14 +586,12 @@ export namespace File {
         //   event: exists ? "change" : "add",
         // })
 
-        const write = Effect.fn("File.write")(function* (file: string, content: string) {
-          using _ = log.time("write", { file })
-          const full = path.join(Instance.directory, file)
+        using _ = log.time("write", { file })
+        const full = path.join(Instance.directory, file)
 
-          if (!Instance.containsPath(full)) throw new Error("Access denied: path escapes project directory")
-          // direct write, do not watch
-          yield* Effect.promise(() => Filesystem.write(full, content))
-        })        
+        if (!Instance.containsPath(full)) throw new Error("Access denied: path escapes project directory")
+        // direct write, do not watch
+        yield* Effect.promise(() => Filesystem.write(full, content))
       })
 
       const list = Effect.fn("File.list")(function* (dir?: string) {

@@ -42,9 +42,12 @@ export function RichTextViewerCM<T>(props: RichTextViewerProps<T>) {
               editCode: true,
               changeLang: true,
             },
-            table: {
-            },
+            table: {},
           },
+        },
+        editor: {
+          defaultModel: "edit&preview",
+          autoScrollByCursor: true,
         },
         toolbars: {
           theme: "light",
@@ -76,7 +79,6 @@ export function RichTextViewerCM<T>(props: RichTextViewerProps<T>) {
             props.onContentChange?.(content)
           },
         },
-
       })
     }
   })

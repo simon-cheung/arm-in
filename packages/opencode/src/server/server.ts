@@ -50,14 +50,16 @@ export namespace Server {
       .use((c, next) => {
         // Allow CORS preflight requests to succeed without auth.
         // Browser clients sending Authorization headers will preflight with OPTIONS.
-        if (c.req.method === "OPTIONS") return next()
-        const password = Flag.OPENCODE_SERVER_PASSWORD
-        if (!password) return next()
-        const username = Flag.OPENCODE_SERVER_USERNAME ?? "opencode"
+        return next()
+        // if (c.req.method === "OPTIONS") return next()
+        // const password = Flag.OPENCODE_SERVER_PASSWORD
+        // if (!password) return next()
+        // const username = Flag.OPENCODE_SERVER_USERNAME ?? "opencode"
 
-        if (c.req.query("auth_token")) c.req.raw.headers.set("authorization", `Basic ${c.req.query("auth_token")}`)
+        // if (c.req.query("auth_token")) c.req.raw.headers.set("authorization", `Basic ${c.req.query("auth_token")}`)
 
-        return basicAuth({ username, password })(c, next)
+        // console.log("auth attempt", { path: c.req.path, method: c.req.method, username })
+        // return basicAuth({ username, password })(c, next)
       })
       .use(async (c, next) => {
         const skip = c.req.path === "/log"
@@ -75,24 +77,25 @@ export namespace Server {
         if (!skip) timer.stop()
       })
       .use(
-        cors({
-          maxAge: 86_400,
-          origin(input) {
-            if (!input) return
+        cors()
+        // cors({
+        //   maxAge: 86_400,
+        //   origin(input) {
+        //     if (!input) return
 
-            if (input.startsWith("http://localhost:")) return input
-            if (input.startsWith("http://127.0.0.1:")) return input
-            if (
-              input === "tauri://localhost" ||
-              input === "http://tauri.localhost" ||
-              input === "https://tauri.localhost"
-            )
-              return input
+        //     if (input.startsWith("http://localhost:")) return input
+        //     if (input.startsWith("http://127.0.0.1:")) return input
+        //     if (
+        //       input === "tauri://localhost" ||
+        //       input === "http://tauri.localhost" ||
+        //       input === "https://tauri.localhost"
+        //     )
+        //       return input
 
-            if (/^https:\/\/([a-z0-9-]+\.)*opencode\.ai$/.test(input)) return input
-            if (opts?.cors?.includes(input)) return input
-          },
-        }),
+        //     if (/^https:\/\/([a-z0-9-]+\.)*opencode\.ai$/.test(input)) return input
+        //     if (opts?.cors?.includes(input)) return input
+        //   },
+        // }),
       )
       .use((c, next) => {
         if (skipCompress(c.req.path, c.req.method)) return next()

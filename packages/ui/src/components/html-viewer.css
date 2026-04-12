@@ -7,6 +7,6 @@
 
 .html-viewer-iframe {
   flex: 1;
-  min-height: 0;
+  min-height: 50vh;
   border: 0;
 }

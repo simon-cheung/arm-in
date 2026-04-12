@@ -14,6 +14,7 @@ import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { showToast } from "@opencode-ai/ui/toast"
 import { selectionFromLines, useFile, type FileSelection, type SelectedLineRange } from "@/context/file"
 import { useSDK } from "@/context/sdk"
+import { useServer } from "@/context/server"
 import { useComments } from "@/context/comments"
 import { useLanguage } from "@/context/language"
 import { usePrompt } from "@/context/prompt"
@@ -179,6 +180,10 @@ export function FileTabContent(props: { tab: string }) {
   const prompt = usePrompt()
   const fileComponent = useFileComponent()
   const sdk = useSDK()
+  const server = useServer()
+  const auth = server.current?.http
+  const serverUsername = auth?.username ?? "opencode"
+  const serverPassword = auth?.password ?? ""
   const { sessionKey, tabs, view } = useSessionLayout()
   const activeFileTab = createSessionTabs({
     tabs,
@@ -403,7 +408,7 @@ export function FileTabContent(props: { tab: string }) {
   })
 
   const renderFile = (source: string) => (
-    <div class="relative overflow-hidden pb-40 h-full">
+    <div class="relative overflow-hidden pb-40">
       <Dynamic
         component={fileComponent}
         mode="text"
@@ -443,6 +448,8 @@ export function FileTabContent(props: { tab: string }) {
           directory: sdk.directory,
           current: state()?.content,
           serverUrl: sdk.url,
+          serverUsername,
+          serverPassword,
           onLoad: scrollSync.queueRestore,
           onError: (args: { kind: "image" | "audio" | "svg" }) => {
             if (args.kind !== "svg") return

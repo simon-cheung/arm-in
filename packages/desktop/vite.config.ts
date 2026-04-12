@@ -23,6 +23,11 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
     host: host || false,
+    cors: {
+      origin: '*',
+      methods: "*",
+      allowedHeaders: "*",
+    },    
     hmr: host
       ? {
           protocol: "ws",

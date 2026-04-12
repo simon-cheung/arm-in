@@ -50,22 +50,6 @@ bun run --inspect-wait ./src/index.ts serve --port 4096
 curl -v http://localhost:4096/.apps/{base64EncodedDir}/.apps/foo/bar.html
 ```
 
-### 相关配置
-
-#### Vite 代理（开发环境）
-
-`packages/app/vite.config.ts` 中配置了代理：
-
-```ts
-server: {
-  proxy: {
-    "/.apps": {
-      target: "http://localhost:4096",
-      changeOrigin: true,
-    },
-  },
-}
-```
 
 #### HtmlViewer Props
 
@@ -83,6 +67,12 @@ interface HtmlViewerProps {
 - 仅支持 `.apps` 目录下的 HTML 文件
 - Workspace 目录通过 base64 编码传输
 - iframe 使用 `sandbox="allow-same-origin allow-scripts"`
+
+## 2026-04-12 - 移除 token_auth 验证以支持 Desktop HTML 预览
+
+修改了 `packages/opencode/src/server/server.ts` 中的 `ControlPlaneRoutes` 函数，将 `basicAuth` 中间件注释掉，使得 desktop 应用可以预览 html。
+
+具体改动在 `ControlPlaneRoutes` 函数的 CORS/Auth 中间件处（第 50-63 行），将原来的 `basicAuth` 验证逻辑注释掉，改为直接 `return next()` 跳过认证。
 
 # Development & Build Guide
 
@@ -270,4 +260,3 @@ bun prettier --write "packages/**/*.ts"
 - Tests **cannot** be run from repo root (guard prevents it)
 - Default branch is `dev`, not `main`
 - Local `main` ref may not exist; use `dev` or `origin/dev` for diffs
-

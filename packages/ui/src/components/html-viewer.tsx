@@ -3,7 +3,14 @@ import { type FileContents } from "@pierre/diffs"
 import { base64Encode } from "@opencode-ai/util/encode"
 import "./html-viewer.css"
 
-export function HtmlViewer(props: { file: FileContents; path?: string; directory?: string; serverUrl?: string }) {
+export function HtmlViewer(props: {
+  file: FileContents
+  path?: string
+  directory?: string
+  serverUrl?: string
+  serverUsername?: string
+  serverPassword?: string
+}) {
   let iframeRef: HTMLIFrameElement | undefined
 
   const getSrc = () => {
@@ -46,12 +53,21 @@ export function HtmlViewer(props: { file: FileContents; path?: string; directory
 
   const buildUrl = (path: string) => {
     // Use serverUrl if provided, otherwise use current page's origin with port 4096
-    if (props.serverUrl) {
-      return `${props.serverUrl}${path}`
+    const base = props.serverUrl
+      ? `${props.serverUrl}${path}`
+      : (() => {
+          const url = new URL(location.origin)
+          url.port = "4096"
+          return `${url.origin}${path}`
+        })()
+
+    if (props.serverUsername && props.serverPassword) {
+      const url = new URL(base)
+      url.searchParams.set("auth_token", btoa(`${props.serverUsername}:${props.serverPassword}`))
+      return url.toString()
     }
-    const url = new URL(location.origin)
-    url.port = "4096"
-    return `${url.origin}${path}`
+
+    return base
   }
 
   onMount(() => {
@@ -64,7 +80,7 @@ export function HtmlViewer(props: { file: FileContents; path?: string; directory
 
   return (
     <div class="html-viewer">
-      <iframe ref={iframeRef} class="html-viewer-iframe" sandbox="allow-same-origin allow-scripts" />
+      <iframe ref={iframeRef} class="html-viewer-iframe" />
     </div>
   )
 }

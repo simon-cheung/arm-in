@@ -22,6 +22,8 @@ export type FileMediaOptions = {
   onLoad?: () => void
   onError?: (ctx: { kind: "image" | "audio" | "svg" }) => void
   serverUrl?: string
+  serverUsername?: string
+  serverPassword?: string
 }
 
 function mediaValue(cfg: FileMediaOptions, mode: "image" | "audio") {

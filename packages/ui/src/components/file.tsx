@@ -1192,6 +1192,8 @@ export function File<T>(props: FileProps<T>) {
               path={props.media?.path}
               directory={props.media?.directory}
               serverUrl={props.media?.serverUrl}
+              serverUsername={props.media?.serverUsername}
+              serverPassword={props.media?.serverPassword}
             />
           )}
         />
