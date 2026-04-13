@@ -6,11 +6,15 @@ import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
 import { SessionID, MessageID } from "../../src/session/schema"
 import * as CrossSpawnSpawner from "../../src/effect/cross-spawn-spawner"
+import { Truncate } from "../../src/tool/truncate"
+import { Agent } from "../../src/agent/agent"
 
-const runtime = ManagedRuntime.make(Layer.mergeAll(CrossSpawnSpawner.defaultLayer))
+const runtime = ManagedRuntime.make(
+  Layer.mergeAll(CrossSpawnSpawner.defaultLayer, Truncate.defaultLayer, Agent.defaultLayer),
+)
 
 function initGrep() {
-  return runtime.runPromise(GrepTool.pipe(Effect.flatMap((info) => Effect.promise(() => info.init()))))
+  return runtime.runPromise(GrepTool.pipe(Effect.flatMap((info) => info.init())))
 }
 
 const ctx = {
@@ -20,8 +24,8 @@ const ctx = {
   agent: "build",
   abort: AbortSignal.any([]),
   messages: [],
-  metadata: () => {},
-  ask: async () => {},
+  metadata: () => Effect.void,
+  ask: () => Effect.void,
 }
 
 const projectRoot = path.join(__dirname, "../..")
@@ -32,13 +36,15 @@ describe("tool.grep", () => {
       directory: projectRoot,
       fn: async () => {
         const grep = await initGrep()
-        const result = await grep.execute(
-          {
-            pattern: "export",
-            path: path.join(projectRoot, "src/tool"),
-            include: "*.ts",
-          },
-          ctx,
+        const result = await Effect.runPromise(
+          grep.execute(
+            {
+              pattern: "export",
+              path: path.join(projectRoot, "src/tool"),
+              include: "*.ts",
+            },
+            ctx,
+          ),
         )
         expect(result.metadata.matches).toBeGreaterThan(0)
         expect(result.output).toContain("Found")
@@ -56,12 +62,14 @@ describe("tool.grep", () => {
       directory: tmp.path,
       fn: async () => {
         const grep = await initGrep()
-        const result = await grep.execute(
-          {
-            pattern: "xyznonexistentpatternxyz123",
-            path: tmp.path,
-          },
-          ctx,
+        const result = await Effect.runPromise(
+          grep.execute(
+            {
+              pattern: "xyznonexistentpatternxyz123",
+              path: tmp.path,
+            },
+            ctx,
+          ),
         )
         expect(result.metadata.matches).toBe(0)
         expect(result.output).toBe("No files found")
@@ -81,12 +89,14 @@ describe("tool.grep", () => {
       directory: tmp.path,
       fn: async () => {
         const grep = await initGrep()
-        const result = await grep.execute(
-          {
-            pattern: "line",
-            path: tmp.path,
-          },
-          ctx,
+        const result = await Effect.runPromise(
+          grep.execute(
+            {
+              pattern: "line",
+              path: tmp.path,
+            },
+            ctx,
+          ),
         )
         expect(result.metadata.matches).toBeGreaterThan(0)
       },
