@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(RUST_TARGET=x86_64-pc-windows-msvc bun ./scripts/prepare.ts)",
+      "Bash(bun script/build.ts --single --skip-install)",
+      "Bash(mkdir -p src-tauri/sidecars)",
+      "Bash(cp dist/opencode-windows-x64/bin/opencode.exe src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe)",
+      "Bash(bun run:*)",
+      "Bash(mkdir -p packages/desktop/src-tauri/sidecars)",
+      "Bash(cp packages/opencode/dist/opencode-windows-x64/bin/opencode.exe packages/desktop/src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe)",
+      "Bash(find packages/desktop/src-tauri/target/release -name *.exe -type f)",
+      "Bash(find packages/desktop/src-tauri/target/release/deps -name opencode*.exe -type f)",
+      "Bash(ls -la packages/desktop/src-tauri/target/release/*.exe)",
+      "Bash(ls -la d:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/*.exe)",
+      "Bash(find d:/ai-coder/arm-in/packages/app/dist -name *.wasm)",
+      "Bash(find d:/ai-coder/arm-in/packages/app -name *.wasm)",
+      "Bash(ls -la d:/ai-coder/arm-in/packages/app/dist/assets/*.js)",
+      "Bash(grep -l WebAssembly d:/ai-coder/arm-in/packages/app/dist/assets/*.js)",
+      "Bash(ls -la d:/ai-coder/arm-in/packages/app/*.ts)"
+    ]
+  }
+}

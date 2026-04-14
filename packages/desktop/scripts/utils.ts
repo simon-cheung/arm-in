@@ -33,20 +33,38 @@ export const SIDECAR_BINARIES: Array<{ rustTarget: string; ocBinary: string; ass
   },
 ]
 
-export const RUST_TARGET = Bun.env.RUST_TARGET
+const platformMap: Record<string, Record<string, string>> = {
+  win32: { x64: "x86_64-pc-windows-msvc", arm64: "aarch64-pc-windows-msvc" },
+  darwin: { x64: "x86_64-apple-darwin", arm64: "aarch64-apple-darwin" },
+  linux: { x64: "x86_64-unknown-linux-gnu", arm64: "aarch64-unknown-linux-gnu" },
+}
+
+export function getRustTarget(): string {
+  // Tauri sets this when running build/dev
+  if (Bun.env.TAURI_ENV_TARGET_TRIPLE) return Bun.env.TAURI_ENV_TARGET_TRIPLE
+  // Explicit override
+  if (Bun.env.RUST_TARGET) return Bun.env.RUST_TARGET
+  // Auto-detect from platform
+  const platform = process.platform
+  const arch = process.arch === "x64" ? "x64" : process.arch === "arm64" ? "arm64" : process.arch
+  const detected = platformMap[platform]?.[arch]
+  if (!detected) throw new Error(`Cannot detect RUST_TARGET for ${platform}/${arch}`)
+  return detected
+}
+
+export const RUST_TARGET = getRustTarget()
 
 export function getCurrentSidecar(target = RUST_TARGET) {
-  if (!target && !RUST_TARGET) throw new Error("RUST_TARGET not set")
-
   const binaryConfig = SIDECAR_BINARIES.find((b) => b.rustTarget === target)
-  if (!binaryConfig) throw new Error(`Sidecar configuration not available for Rust target '${RUST_TARGET}'`)
+  if (!binaryConfig) throw new Error(`Sidecar configuration not available for Rust target '${target}'`)
 
   return binaryConfig
 }
 
-export async function copyBinaryToSidecarFolder(source: string, target = RUST_TARGET) {
-  await $`mkdir -p src-tauri/sidecars`
-  const dest = windowsify(`src-tauri/sidecars/opencode-cli-${target}`)
+export async function copyBinaryToSidecarFolder(source: string, target = RUST_TARGET, baseDir = "") {
+  const sidecarsDir = baseDir ? `${baseDir}/src-tauri/sidecars` : "src-tauri/sidecars"
+  await $`mkdir -p ${sidecarsDir}`
+  const dest = windowsify(`${sidecarsDir}/opencode-cli-${target}`)
   await $`cp ${source} ${dest}`
   if (process.platform === "win32" && process.env.GITHUB_ACTIONS === "true") {
     await $`pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ../../script/sign-windows.ps1 ${dest}`

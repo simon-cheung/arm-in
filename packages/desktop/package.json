@@ -1,7 +1,7 @@
 {
   "name": "@opencode-ai/desktop",
   "private": true,
-  "version": "1.4.3",
+  "version": "0.0.0-arm-dev-202604140919",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -9,8 +9,10 @@
     "predev": "bun ./scripts/predev.ts",
     "dev": "vite",
     "build": "bun run typecheck && vite build",
+    "build:local": "bun run build && bun run ./scripts/build-local.ts",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:build": "bun ./scripts/tauri.ts build"
   },
   "dependencies": {
     "@opencode-ai/app": "workspace:*",

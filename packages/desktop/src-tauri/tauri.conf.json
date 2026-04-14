@@ -19,7 +19,7 @@
     ],
     "withGlobalTauri": true,
     "security": {
-      "csp": "default-src *; frame-src *; script-src *; connect-src *; img-src * data:; style-src *;"
+      "csp": "default-src * 'unsafe-inline' data:; frame-src *; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src *; img-src * data:; style-src * 'unsafe-inline';"
     },
     "macOSPrivateApi": true
   },

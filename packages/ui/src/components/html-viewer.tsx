@@ -14,6 +14,7 @@ export function HtmlViewer(props: {
   let iframeRef: HTMLIFrameElement | undefined
 
   const getSrc = () => {
+    console.log(`[HtmlViewer.getSrc] props.path=${props.path}, props.directory=${props.directory}`)
     if (!props.path) return "about:blank"
 
     // props.path could be:
@@ -22,6 +23,7 @@ export function HtmlViewer(props: {
 
     // Find the .apps/ portion
     const appsIndex = props.path.indexOf(".apps/")
+    console.log(`[HtmlViewer.getSrc] appsIndex=${appsIndex}`)
     if (appsIndex === -1) {
       // No .apps/ in path, can't determine workspace
       return "about:blank"
@@ -31,6 +33,7 @@ export function HtmlViewer(props: {
     let workspaceDir = props.path.substring(0, appsIndex)
     // relativePath is the part after .apps/
     let relativePath = props.path.substring(appsIndex + ".apps/".length)
+    console.log(`[HtmlViewer.getSrc] workspaceDir="${workspaceDir}", relativePath="${relativePath}"`)
 
     // If workspaceDir is empty, .apps/ is at the start of the path
     // We need to use props.directory as the workspace
@@ -38,17 +41,25 @@ export function HtmlViewer(props: {
       workspaceDir = props.directory
     } else if (!workspaceDir) {
       // Still no workspace directory available
+      console.log(`[HtmlViewer.getSrc] workspaceDir empty, props.directory=${props.directory}, returning about:blank`)
       return "about:blank"
     }
 
-    if (!workspaceDir.startsWith("/")) {
-      // workspaceDir must be an absolute path
+    // Normalize Windows backslashes to forward slashes
+    workspaceDir = workspaceDir.replace(/\\/g, "/")
+
+    // Check if workspaceDir is an absolute path (Unix / or Windows E:/ C:/ etc)
+    const isAbsolute = workspaceDir.startsWith("/") || /^[a-zA-Z]:/.test(workspaceDir)
+    if (!isAbsolute) {
+      console.log(`[HtmlViewer.getSrc] workspaceDir not absolute: ${workspaceDir}, returning about:blank`)
       return "about:blank"
     }
 
     // Base64 encode the workspace directory
     const encodedDir = base64Encode(workspaceDir)
-    return buildUrl(`/.apps/${encodedDir}/${relativePath}`)
+    const url = buildUrl(`/.apps/${encodedDir}/${relativePath}`)
+    console.log(`[HtmlViewer.getSrc] final url=${url}`)
+    return url
   }
 
   const buildUrl = (path: string) => {

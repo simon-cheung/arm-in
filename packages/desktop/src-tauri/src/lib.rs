@@ -423,26 +423,39 @@ async fn initialize(app: AppHandle) {
     setup_app(&app, init_rx);
     spawn_cli_sync_task(app.clone());
 
-    // Spawn sidecar immediately - credentials are known before health check
-    let port = get_sidecar_port();
+    // Try to connect to existing server on port 4096 first
+    const DEFAULT_PORT: u32 = 4096;
     let hostname = "127.0.0.1";
-    let url = format!("http://{hostname}:{port}");
-    let password = uuid::Uuid::new_v4().to_string();
+    let (port, password, child, health_check) = match tokio::net::TcpStream::connect(format!("{hostname}:{DEFAULT_PORT}")).await {
+        Ok(_) => {
+            tracing::info!("Connected to existing server on port {DEFAULT_PORT}");
+            (DEFAULT_PORT, String::new(), None, None)
+        }
+        Err(_) => {
+            // No server running on 4096, spawn our own
+            let port = get_sidecar_port();
+            let password = uuid::Uuid::new_v4().to_string();
+            let url = format!("http://{hostname}:{port}");
 
-    tracing::info!("Spawning sidecar on {url}");
-    let (child, health_check) =
-        server::spawn_local_server(app.clone(), hostname.to_string(), port, password.clone());
+            tracing::info!("Spawning sidecar on {url}");
+            let (child, health_check) = server::spawn_local_server(app.clone(), hostname.to_string(), port, password.clone());
+
+            (port, password, Some(child), Some(health_check))
+        }
+    };
+
+    let url = format!("http://{hostname}:{port}");
 
     // Make sidecar credentials available immediately (before health check completes)
     let (ready_tx, ready_rx) = oneshot::channel();
     let _ = ready_tx.send(ServerReadyData {
         url: url.clone(),
-        username: Some("opencode".to_string()),
-        password: Some(password),
+        username: child.is_some().then_some("opencode".to_string()),
+        password: child.is_some().then_some(password),
     });
     app.manage(SidecarReady(ready_rx.shared()));
     app.manage(ServerState {
-        child: Arc::new(Mutex::new(Some(child))),
+        child: Arc::new(Mutex::new(child)),
     });
 
     let loading_window_complete = event_once_fut::<LoadingWindowComplete>(&app);
@@ -486,12 +499,17 @@ async fn initialize(app: AppHandle) {
             }
 
             // Wait for sidecar to become healthy (for loading window progress)
-            let res = timeout(Duration::from_secs(30), health_check.0).await;
-            match res {
-                Ok(Ok(Ok(()))) => tracing::info!("Sidecar health check OK"),
-                Ok(Ok(Err(e))) => tracing::error!("Sidecar health check failed: {e}"),
-                Ok(Err(e)) => tracing::error!("Sidecar health check task failed: {e}"),
-                Err(_) => tracing::error!("Sidecar health check timed out"),
+            // Skip health check if connected to existing server
+            if let Some(hc) = health_check {
+                let res = timeout(Duration::from_secs(30), hc.0).await;
+                match res {
+                    Ok(Ok(Ok(()))) => tracing::info!("Sidecar health check OK"),
+                    Ok(Ok(Err(e))) => tracing::error!("Sidecar health check failed: {e}"),
+                    Ok(Err(e)) => tracing::error!("Sidecar health check task failed: {e}"),
+                    Err(_) => tracing::error!("Sidecar health check timed out"),
+                }
+            } else {
+                tracing::info!("Skipping health check - connected to existing server");
             }
 
             tracing::info!("Loading task finished");

@@ -47,7 +47,6 @@ export function RichTextViewerCM<T>(props: RichTextViewerProps<T>) {
         },
         editor: {
           defaultModel: "edit&preview",
-          autoScrollByCursor: true,
         },
         toolbars: {
           theme: "light",

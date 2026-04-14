@@ -1158,13 +1158,18 @@ function isRichTextFile(file: { name: string }): boolean {
 }
 
 function isHtmlFile(path?: string): boolean {
+  console.log(`[isHtmlFile] path=${path}`)
   if (!path) return false
   // path could be either relative like ".apps/foo/bar.html" or absolute like "/Users/xxx/project/.apps/foo/bar.html"
   const normalizedPath = path.includes(".apps/") ? path.substring(path.indexOf(".apps/")) : path
+  console.log(`[isHtmlFile] normalizedPath=${normalizedPath}`)
   if (!normalizedPath.startsWith(".apps/")) return false
   const match = normalizedPath.match(/\.[^.]+$/)
+  console.log(`[isHtmlFile] match=${match?.[0]}`)
   if (!match) return false
-  return HTML_EXTS.includes(match[0].toLowerCase())
+  const result = HTML_EXTS.includes(match[0].toLowerCase())
+  console.log(`[isHtmlFile] result=${result}`)
+  return result
 }
 
 export function File<T>(props: FileProps<T>) {
@@ -1182,20 +1187,24 @@ export function File<T>(props: FileProps<T>) {
       )
     }
     const useHtml = isHtmlFile(props.media?.path)
+    console.log(`[File] isHtmlFile(props.media?.path=${props.media?.path}) = ${useHtml}`)
     if (useHtml) {
       return (
         <FileMedia
           media={props.media}
-          fallback={() => (
-            <HtmlViewer
-              file={props.file}
-              path={props.media?.path}
-              directory={props.media?.directory}
-              serverUrl={props.media?.serverUrl}
-              serverUsername={props.media?.serverUsername}
-              serverPassword={props.media?.serverPassword}
-            />
-          )}
+          fallback={() => {
+            console.log(`[File] rendering HtmlViewer with path=${props.media?.path}, directory=${props.media?.directory}`)
+            return (
+              <HtmlViewer
+                file={props.file}
+                path={props.media?.path}
+                directory={props.media?.directory}
+                serverUrl={props.media?.serverUrl}
+                serverUsername={props.media?.serverUsername}
+                serverPassword={props.media?.serverPassword}
+              />
+            )
+          }}
         />
       )
     }
