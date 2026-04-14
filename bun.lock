@@ -190,7 +190,7 @@
     },
     "packages/desktop": {
       "name": "@opencode-ai/desktop",
-      "version": "0.0.0-arm-dev-202604140953",
+      "version": "0.0.0-arm-dev-202604141154",
       "dependencies": {
         "@opencode-ai/app": "workspace:*",
         "@opencode-ai/ui": "workspace:*",

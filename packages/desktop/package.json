@@ -1,7 +1,7 @@
 {
   "name": "@opencode-ai/desktop",
   "private": true,
-  "version": "0.0.0-arm-dev-202604140953",
+  "version": "0.0.0-arm-dev-202604141154",
   "type": "module",
   "license": "MIT",
   "scripts": {
