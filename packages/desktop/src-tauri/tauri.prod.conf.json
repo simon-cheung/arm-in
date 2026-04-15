@@ -20,7 +20,9 @@
         "args": ["-ExecutionPolicy", "Bypass", "-File", "../../../script/sign-windows.ps1", "%1"]
       },
       "nsis": {
-        "installerIcon": "icons2/prod/icon.ico"
+        "installerIcon": "icons2/dev/icon.ico",
+        "headerImage": "assets/nsis-header_armin.bmp",
+        "sidebarImage": "assets/nsis-sidebar_armin.bmp"
       }
     },
     "linux": {
