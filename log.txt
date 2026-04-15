@@ -1,0 +1,98 @@
+   stderr: "        Info Looking up installed tauri packages to check mismatched versions...
+     Running beforeBuildCommand `bun run build`
+$ bun run typecheck && vite build
+$ tsgo -b
+\u001B[33m[plugin vite:reporter] 
+(!) D:/ai-coder/arm-in/packages/app/src/components/dialog-select-model.tsx is dynamically imported by D:/ai-coder/arm-in/packages/app/src/pages/session/use-session-commands.tsx but also statically imported by D:/ai-coder/arm-in/packages/app/src/components/prompt-input.tsx, dynamic import will not move module into another chunk.
+\u001B[39m
+\u001B[33m[plugin vite:reporter] 
+(!) D:/ai-coder/arm-in/packages/ui/src/theme/themes/oc-2.json is dynamically imported by D:/ai-coder/arm-in/packages/ui/src/theme/context.tsx but also statically imported by D:/ai-coder/arm-in/packages/ui/src/theme/context.tsx, dynamic import will not move module into another chunk.
+\u001B[39m
+\u001B[33m
+(!) Some chunks are 
+larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.\u001B[39m
+   Compiling opencode-desktop v0.0.0 (D:/ai-coder/arm-in/packages/desktop/src-tauri)
+warning: function `export_types` is never used
+   --> src/lib.rs:399:4
+    |
+399 | fn export_types(builder: &tauri_specta::Builder<tauri::Wry>) {
+    |    ^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `ServerConfig` is never constructed
+  --> src/cli.rs:48:12
+   |
+48 | pub struct ServerConfig {
+   |   
+         ^^^^^^^^^^^^
+
+warning: struct `Config` is never constructed
+  --> src/cli.rs:54:12
+   |
+54 | pub struct Config {
+   |            ^^^^^^
+
+warning: function `get_config` is never used
+  --> src/cli.rs:85:14
+   |
+85 | pub async fn get_config(app: 
+&AppHandle) -> Option<Config> {
+   |              ^^^^^^^^^^
+
+warning: constant `TAIL_LINES` is never used
+ --> src/logging.rs:8:7
+  |
+8 | const TAIL_LINES: usize = 1000;
+  |       ^^^^^^^^^^
+
+warning: function `tail` is never used
+  --> src/logging.rs:45:8
+   |
+45 | pub fn tail() -> String {
+   |        ^^^^
+
+warning: `opencode-desktop` (lib) generated 6 warnings
+    Finished `release` profile [optimized] target(s) in 55.72s
+       Built application at: D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/ArmIn.exe
+SignTool Error: No signature found.\r
+     Signing sidecars/armin-cli-x86_64-pc-windows-msvc.exe
+     Signing sidecars/armin-cli-x86_64-pc-windows-msvc.exe with a custom signing command
+     Signing Output of signing command:
+Skipping Windows signing because this is not running on GitHub Actions
+        Info Patching D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/ArmIn.exe with bundle type information: nsis
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/ArmIn.exe
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/ArmIn.exe with a custom signing command
+     Signing Output of signing command:
+Skipping Windows signing because this is not running on GitHub Actions
+  
+      Info Target: x64
+        Info Signing NSIS plugins
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/nsis/x64/Plugins/x86-unicode/NSISdl.dll
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/nsis/x64/Plugins/x86-unicode/NSISdl.dll with a custom signing command
+     Signing Output of signing command:
+Skipping Windows signing because this is not running on GitHub Actions
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/nsis/x64/Plugins/x86-unicode/StartMenu.dll
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/nsis/x64/Plugins/x86-unicode/StartMenu.dll with a custom signing command
+     Signing Output of signing command:
+Skipping Windows signing because this is not running on GitHub Actions
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/nsis/x64/Plugins/x86-unicode/System.dll
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/nsis/x64/Plugins/x86-unicode/System.dll with a custom signing command
+     Signing Output of signing command:
+Skipping Windows signing because this is not running on GitHub Actions
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/nsis/x64/Plugins/x86-unicode/nsDialogs.dll
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/nsis/x64/Plugins/x86-unicode/nsDialogs.dll with a custom signing command
+     Signing Output of signing command:
+Skipping 
+Windows signing because this is not running on GitHub Actions
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/nsis/x64/Plugins/x86-unicode/additional/nsis_tauri_utils.dll
+     Signing D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/nsis/x64/Plugins/x86-unicode/additional/nsis_tauri_utils.dll with a custom signing command
+     Signing Output of signing command:
+Skipping Windows signing because this is not running on GitHub Actions
+     Running makensis to produce D:/ai-coder/arm-in/packages/desktop/src-tauri/target/release/bundle/nsis/ArmIn_0.1.0_x64-setup.exe
+failed to bundle project `系统找不到指定的文件。 (os error 2)`
+       Error failed to bundle project `系统找不到指定的文件。 (os error 2)`
+", 

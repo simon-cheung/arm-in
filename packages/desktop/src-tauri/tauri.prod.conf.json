@@ -1,23 +1,26 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OpenCode",
-  "identifier": "ai.opencode.desktop",
+  "productName": "ArmIn",
+  "mainBinaryName": "ArmIn",
+  "version": "0.1.0",
+  "identifier": "com.ggvale.armin.desktop",
   "bundle": {
     "createUpdaterArtifacts": true,
     "icon": [
-      "icons/prod/32x32.png",
-      "icons/prod/128x128.png",
-      "icons/prod/128x128@2x.png",
-      "icons/prod/icon.icns",
-      "icons/prod/icon.ico"
+      "icons2/prod/32x32.png",
+      "icons2/prod/128x128.png",
+      "icons2/prod/128x128@2x.png",
+      "icons2/prod/icon.icns",
+      "icons2/prod/icon.ico"
     ],
+    "externalBin": ["sidecars/armin-cli"],
     "windows": {
       "signCommand": {
         "cmd": "powershell",
         "args": ["-ExecutionPolicy", "Bypass", "-File", "../../../script/sign-windows.ps1", "%1"]
       },
       "nsis": {
-        "installerIcon": "icons/prod/icon.ico"
+        "installerIcon": "icons2/prod/icon.ico"
       }
     },
     "linux": {

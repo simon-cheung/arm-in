@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OpenCode Dev",
-  "identifier": "ai.opencode.desktop.dev",
-  "mainBinaryName": "OpenCode",
+  "productName": "ArmIn Dev",
+  "identifier": "com.ggvale.armin.desktop.dev",
+  "mainBinaryName": "ArmIn",
   "version": "../package.json",
   "build": {
     "beforeDevCommand": "bun run dev",
@@ -25,15 +25,15 @@
   },
   "bundle": {
     "icon": [
-      "icons/dev/32x32.png",
-      "icons/dev/128x128.png",
-      "icons/dev/128x128@2x.png",
-      "icons/dev/icon.icns",
-      "icons/dev/icon.ico"
+      "icons2/dev/32x32.png",
+      "icons2/dev/128x128.png",
+      "icons2/dev/128x128@2x.png",
+      "icons2/dev/icon.icns",
+      "icons2/dev/icon.ico"
     ],
     "active": true,
     "targets": ["deb", "rpm", "dmg", "nsis", "app"],
-    "externalBin": ["sidecars/opencode-cli"],
+    "externalBin": ["sidecars/armin-cli"],
     "linux": {
       "rpm": {
         "compression": {
@@ -50,7 +50,7 @@
         "args": ["-ExecutionPolicy", "Bypass", "-File", "../../../script/sign-windows.ps1", "%1"]
       },
       "nsis": {
-        "installerIcon": "icons/dev/icon.ico",
+        "installerIcon": "icons2/dev/icon.ico",
         "headerImage": "assets/nsis-header.bmp",
         "sidebarImage": "assets/nsis-sidebar.bmp"
       }

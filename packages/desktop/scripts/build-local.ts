@@ -19,5 +19,14 @@ const opencodeDir = path.resolve(desktopDir, "../opencode")
 const buildScript = path.join(opencodeDir, "script/build.ts")
 await $`bun ${buildScript} --single`.cwd(opencodeDir)
 
+const cliName = process.env.OPENCODE_CLI_NAME ?? "opencode-cli"
+const target = sidecarConfig.rustTarget
+const sidecarBinary = windowsify(`${desktopDir}/src-tauri/sidecars/${cliName}-${target}`)
+
 const localBinary = path.join(opencodeDir, "dist/opencode-windows-x64/bin/opencode.exe")
-await copyBinaryToSidecarFolder(windowsify(localBinary), sidecarConfig.rustTarget, desktopDir)
+await copyBinaryToSidecarFolder(windowsify(localBinary), target, desktopDir)
+
+// Smoke test the actual binary that desktop will use
+console.log(`\nRunning smoke test: ${cliName}-${target} --version`)
+const versionOutput = await $`${sidecarBinary} --version`.text()
+console.log(`Smoke test passed: ${versionOutput.trim()}`)

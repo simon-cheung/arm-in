@@ -1,21 +1,20 @@
 {
-  "productName": "Arm-In",
+  "productName": "ArmIn",
   "mainBinaryName": "ArmIn",
   "version": "0.1.0",
+  "identifier": "com.ggvale.armin.desktop",
   "bundle": {
     "icon": [
-      "icons/dev/32x32.png",
-      "icons/dev/128x128.png",
-      "icons/dev/128x128@2x.png",
-      "icons/dev/icon.icns",
-      "icons/dev/icon.ico"
+      "icons/prod/32x32.png",
+      "icons/prod/128x128.png",
+      "icons/prod/128x128@2x.png",
+      "icons/prod/icon.icns",
+      "icons/prod/icon.ico"
     ],
-    "externalBin": [
-      "sidecars/armin-cli-${TARGET}"
-    ],
+    "externalBin": ["sidecars/armin-cli-x86_64-pc-windows-msvc"],
     "windows": {
       "nsis": {
-        "installerIcon": "icons/dev/icon.ico"
+        "installerIcon": "icons2/prod/icon.ico"
       }
     }
   }
