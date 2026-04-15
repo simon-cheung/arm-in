@@ -13,7 +13,7 @@ const embeddedUIPromise = Flag.OPENCODE_DISABLE_EMBEDDED_WEB_UI
 
     // "csp": "default-src *; frame-src *; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src *; img-src * data:; style-src * 'unsafe-inline';"
 const DEFAULT_CSP =
-  "default-src * 'unsafe-inline' 'unsafe-eval' data:;"
+  "default-src * 'unsafe-inline' data:; script-src * 'unsafe-inline' 'unsafe-eval' data:;"
 
 const csp = (hash = "") =>
   `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'${hash ? ` 'sha256-${hash}'` : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' data:; connect-src 'self' data:`

@@ -9,10 +9,10 @@ if (-not $Path -or $Path.Count -eq 0) {
   throw "At least one path is required"
 }
 
-if ($env:GITHUB_ACTIONS -ne "true") {
-  Write-Host "Skipping Windows signing because this is not running on GitHub Actions"
-  exit 0
-}
+# if ($env:GITHUB_ACTIONS -ne "true") {
+#   Write-Host "Skipping Windows signing because this is not running on GitHub Actions"
+#   exit 0
+# }
 
 $vars = @{
   endpoint = $env:AZURE_TRUSTED_SIGNING_ENDPOINT
@@ -20,10 +20,10 @@ $vars = @{
   profile = $env:AZURE_TRUSTED_SIGNING_CERTIFICATE_PROFILE
 }
 
-if ($vars.Values | Where-Object { -not $_ }) {
-  Write-Host "Skipping Windows signing because Azure Artifact Signing is not configured"
-  exit 0
-}
+# if ($vars.Values | Where-Object { -not $_ }) {
+#   Write-Host "Skipping Windows signing because Azure Artifact Signing is not configured"
+#   exit 0
+# }
 
 $moduleVersion = "0.5.8"
 $module = Get-Module -ListAvailable -Name TrustedSigning | Where-Object { $_.Version -eq [version] $moduleVersion }

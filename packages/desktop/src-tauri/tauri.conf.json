@@ -19,7 +19,7 @@
     ],
     "withGlobalTauri": true,
     "security": {
-      "csp": "default-src * 'unsafe-inline' 'unsafe-eval' data:;"
+      "csp": "default-src * 'unsafe-inline' data:; script-src * 'unsafe-inline' 'unsafe-eval' data:;"
     },
     "macOSPrivateApi": true
   },
