@@ -48,7 +48,7 @@ export namespace UI {
   }
 
   export function logo(pad?: string) {
-    return wordmark;
+    return wordmark.join("").trimEnd();
     // if (!process.stdout.isTTY && !process.stderr.isTTY) {
     //   const result = []
     //   for (const row of wordmark) {
