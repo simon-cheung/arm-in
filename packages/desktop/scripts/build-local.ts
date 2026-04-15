@@ -23,7 +23,7 @@ const cliName = process.env.OPENCODE_CLI_NAME ?? "opencode-cli"
 const target = sidecarConfig.rustTarget
 const sidecarBinary = windowsify(`${desktopDir}/src-tauri/sidecars/${cliName}-${target}`)
 
-const localBinary = path.join(opencodeDir, "dist/opencode-windows-x64/bin/opencode.exe")
+const localBinary = path.join(opencodeDir, `dist/${sidecarConfig.ocBinary.replace("-baseline", "")}/bin/opencode`)
 await copyBinaryToSidecarFolder(windowsify(localBinary), target, desktopDir)
 
 // Smoke test the actual binary that desktop will use

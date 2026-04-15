@@ -28,10 +28,11 @@ if (await Bun.file(envPath).exists()) {
 const cliName = process.env.OPENCODE_CLI_NAME
 const tauriEnv = cliName ? { OPENCODE_CLI_NAME: cliName } : {}
 if (args[0] === "build"){
-  await $`tauri ${args} --config ${desktopDir}/src-tauri/tauri.prod.conf.json`.env(tauriEnv)
+  console.log(`./node_modules/.bin/tauri ${args} --config ${desktopDir}/src-tauri/tauri.prod.conf.json`)
+  await $`./node_modules/.bin/tauri ${args} --config ${desktopDir}/src-tauri/tauri.prod.conf.json`.env(tauriEnv)
 }
 else{
-  await $`tauri ${args}`.env(tauriEnv)
+  await $`./node_modules/.bin/tauri ${args}`.env(tauriEnv)
 }
 
 // Copy deps artifact to expected binary name
