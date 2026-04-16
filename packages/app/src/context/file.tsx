@@ -69,6 +69,7 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
     }>({
       file: {},
     })
+    const localEdits = new Map<string, string>()
 
     const tree = createFileTreeStore({
       scope,
@@ -206,6 +207,10 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
         hasFile: (file) => Boolean(store.file[file]),
         isOpen: (file) => tabs.all().some((tab) => path.pathFromTab(tab) === file),
         loadFile: (file) => {
+          if (localEdits.has(file)) {
+            localEdits.delete(file)
+            return
+          }
           void load(file, { force: true })
         },
         node: tree.node,
@@ -267,6 +272,22 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
       },
       get,
       load,
+      setContent: (file: string, content: string) => {
+        const normalized = path.normalize(file)
+        if (!normalized) return
+        setStore(
+          "file",
+          normalized,
+          produce((draft) => {
+            if (draft.content) {
+              draft.content.content = content
+            } else {
+              draft.content = { type: "text", content }
+            }
+          }),
+        )
+        localEdits.set(normalized, content)
+      },
       scrollTop,
       scrollLeft,
       setScrollTop,

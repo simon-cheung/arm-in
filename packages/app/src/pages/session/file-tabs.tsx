@@ -193,6 +193,9 @@ export function FileTabContent(props: { tab: string }) {
 
   let find: FileSearchHandle | null = null
 
+  const [localVersion, setLocalVersion] = createSignal(0)
+  let pendingContent: string | undefined
+
   const search = {
     register: (handle: FileSearchHandle | null) => {
       find = handle
@@ -205,7 +208,17 @@ export function FileTabContent(props: { tab: string }) {
     if (!p) return
     return file.get(p)
   })
-  const contents = createMemo(() => state()?.content?.content ?? "")
+  const contents = createMemo(() => {
+    void localVersion()
+    const p = path()
+    if (!p) return ""
+    if (localVersion() > 0 && pendingContent !== undefined) {
+      const result = pendingContent
+      pendingContent = undefined
+      return result
+    }
+    return state()?.content?.content ?? ""
+  })
   const cacheKey = createMemo(() => sampledChecksum(contents()))
   const selectedLines = createMemo<SelectedLineRange | null>(() => {
     const p = path()
@@ -421,6 +434,9 @@ export function FileTabContent(props: { tab: string }) {
         onContentChange={(content: string) => {
           const p = path()
           if (!p) return
+          pendingContent = contents()
+          setLocalVersion((v) => v + 1)
+          file.setContent(p, content)
           sdk.client.file.write({ path: p, content })
         }}
         enableLineSelection

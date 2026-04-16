@@ -577,26 +577,26 @@ export namespace File {
       })
 
       const write = Effect.fn("File.write")(function* (file: string, content: string) {
-        // using _ = log.time("write", { file })
-        // const full = path.join(Instance.directory, file)
-
-        // if (!Instance.containsPath(full)) throw new Error("Access denied: path escapes project directory")
-
-        // const exists = yield* appFs.existsSafe(full)
-        // yield* appFs.writeWithDirs(full, content).pipe(Effect.orDie)
-
-        // Bus.publish(File.Event.Edited, { file })
-        // Bus.publish(FileWatcher.Event.Updated, {
-        //   file,
-        //   event: exists ? "change" : "add",
-        // })
-
         using _ = log.time("write", { file })
         const full = path.join(Instance.directory, file)
 
         if (!Instance.containsPath(full)) throw new Error("Access denied: path escapes project directory")
-        // direct write, do not watch
-        yield* Effect.promise(() => Filesystem.write(full, content))
+
+        const exists = yield* appFs.existsSafe(full)
+        yield* appFs.writeWithDirs(full, content).pipe(Effect.orDie)
+
+        Bus.publish(File.Event.Edited, { file })
+        Bus.publish(FileWatcher.Event.Updated, {
+          file,
+          event: exists ? "change" : "add",
+        })
+
+        // using _ = log.time("write", { file })
+        // const full = path.join(Instance.directory, file)
+
+        // if (!Instance.containsPath(full)) throw new Error("Access denied: path escapes project directory")
+        // // direct write, do not watch
+        // yield* Effect.promise(() => Filesystem.write(full, content))
       })
 
       const list = Effect.fn("File.list")(function* (dir?: string) {
