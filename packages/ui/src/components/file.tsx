@@ -97,7 +97,7 @@ type DiffBaseProps<T> = FileDiffOptions<T> &
 export type RichTextViewerProps<T = {}> = {
   file: FileContents
   path?: string
-  mode?: "text" | "rich-text"
+  mode?: "text" | "rich-text" | "html-preview"
   editable?: boolean
   onContentChange?: (content: string) => void
   class?: string
@@ -115,7 +115,7 @@ export type RichTextViewerProps<T = {}> = {
 }
 
 export type RichTextFileProps<T = {}> = RichTextViewerProps<T> & {
-  mode: "rich-text"
+  mode: "rich-text" | "html-preview"
 }
 
 type DiffPairProps<T> = DiffBaseProps<T> & {
@@ -671,7 +671,7 @@ function diffSelectionSide(node: Node | null) {
 // ---------------------------------------------------------------------------
 
 function ViewerShell(props: {
-  mode: "text" | "diff"
+  mode: "text" | "diff" | "html-preview"
   viewer: ReturnType<typeof useFileViewer>
   class: string | undefined
   classList: ComponentProps<"div">["classList"] | undefined
@@ -1147,31 +1147,6 @@ function DiffViewer<T>(props: DiffFileProps<T>) {
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
-
-const MARKDOWN_EXTS = [".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdtxt"]
-const HTML_EXTS = [".html", ".htm"]
-
-function isRichTextFile(file: { name: string }): boolean {
-  const match = file.name.match(/\.[^.]+$/)
-  if (!match) return false
-  return MARKDOWN_EXTS.includes(match[0].toLowerCase())
-}
-
-function isHtmlFile(path?: string): boolean {
-  console.log(`[isHtmlFile] path=${path}`)
-  if (!path) return false
-  // path could be either relative like ".apps/foo/bar.html" or absolute like "/Users/xxx/project/.apps/foo/bar.html"
-  const normalizedPath = path.includes(".apps/") ? path.substring(path.indexOf(".apps/")) : path
-  console.log(`[isHtmlFile] normalizedPath=${normalizedPath}`)
-  if (!normalizedPath.startsWith(".apps/")) return false
-  const match = normalizedPath.match(/\.[^.]+$/)
-  console.log(`[isHtmlFile] match=${match?.[0]}`)
-  if (!match) return false
-  const result = HTML_EXTS.includes(match[0].toLowerCase())
-  console.log(`[isHtmlFile] result=${result}`)
-  return result
-}
-
 export function File<T>(props: FileProps<T>) {
   if (props.mode === "rich-text") {
     return (
@@ -1180,38 +1155,31 @@ export function File<T>(props: FileProps<T>) {
   }
 
   if (props.mode === "text") {
-    const useRichText = isRichTextFile(props.file)
-    if (useRichText) {
-      return (
-        <FileMedia media={props.media} fallback={() => <RichTextViewerCM {...(props as RichTextViewerProps<T>)} />} />
-      )
-    }
-    const useHtml = isHtmlFile(props.media?.path)
-    console.log(`[File] isHtmlFile(props.media?.path=${props.media?.path}) = ${useHtml}`)
-    if (useHtml) {
-      return (
-        <FileMedia
-          media={props.media}
-          fallback={() => {
-            console.log(`[File] rendering HtmlViewer with path=${props.media?.path}, directory=${props.media?.directory}`)
-            return (
-              <HtmlViewer
-                file={props.file}
-                path={props.media?.path}
-                directory={props.media?.directory}
-                serverUrl={props.media?.serverUrl}
-                serverUsername={props.media?.serverUsername}
-                serverPassword={props.media?.serverPassword}
-              />
-            )
-          }}
-        />
-      )
-    }
+    return <FileMedia media={props.media} fallback={() => TextViewer(props)} />
+  }  
+
+  if (props.mode === "html-preview") {
+    let fp = props as RichTextFileProps;
+    console.log(`[File] isHtmlFile(props.media?.path=${fp.media?.path}) = true`)
     return (
-      <FileMedia media={props.media} fallback={() => <RichTextViewerCM {...(props as RichTextViewerProps<T>)} />} />
+      <FileMedia
+        media={fp.media}
+        fallback={() => {
+          console.log(`[File] rendering HtmlViewer with path=${fp.media?.path}, directory=${props.media?.directory}`)
+          return (
+            <HtmlViewer
+              file={fp.file}
+              path={fp.media?.path}
+              directory={fp.media?.directory}
+              serverUrl={fp.media?.serverUrl}
+              serverUsername={fp.media?.serverUsername}
+              serverPassword={fp.media?.serverPassword}
+            />
+          )
+        }}
+      />
     )
   }
-
-  return <FileMedia media={props.media} fallback={() => <DiffViewer {...props} />} />
+  let dp = props as DiffFileProps;
+  return <FileMedia media={props.media} fallback={() => <DiffViewer {...dp} />} />
 }

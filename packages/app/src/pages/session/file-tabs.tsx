@@ -420,11 +420,41 @@ export function FileTabContent(props: { tab: string }) {
     scrollSync.queueRestore()
   })
 
+const MARKDOWN_EXTS = [".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdtxt"]
+const HTML_EXTS = [".html", ".htm"]
+
+  function isRichTextFile(name: string): boolean {
+    const match = name.match(/\.[^.]+$/)
+    if (!match) return false
+    return MARKDOWN_EXTS.includes(match[0].toLowerCase())
+  }
+
+  function isHtmlFile(path?: string): boolean {
+    console.log(`[isHtmlFile] path=${path}`)
+    if (!path) return false
+    // path could be either relative like ".apps/foo/bar.html" or absolute like "/Users/xxx/project/.apps/foo/bar.html"
+    const normalizedPath = path.includes(".apps/") ? path.substring(path.indexOf(".apps/")) : path
+    console.log(`[isHtmlFile] normalizedPath=${normalizedPath}`)
+    if (!normalizedPath.startsWith(".apps/")) return false
+    const match = normalizedPath.match(/\.[^.]+$/)
+    console.log(`[isHtmlFile] match=${match?.[0]}`)
+    if (!match) return false
+    const result = HTML_EXTS.includes(match[0].toLowerCase())
+    console.log(`[isHtmlFile] result=${result}`)
+    return result
+  }
+
+  const checkMode = ()=>{
+    if(isRichTextFile( path() ?? "")) return "rich-text"
+    if(isHtmlFile(path() ?? "")) return "html-preview"
+    return "text"
+  }
+
   const renderFile = (source: string) => (
     <div class="relative overflow-hidden pb-40">
       <Dynamic
         component={fileComponent}
-        mode="text"
+        mode={checkMode()}
         file={{
           name: path() ?? "",
           contents: source,
