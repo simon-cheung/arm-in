@@ -47,8 +47,12 @@ export namespace UI {
     blank = true
   }
 
+  export function logoLst() {
+    return wordmark;
+  }
+
   export function logo(pad?: string) {
-    return wordmark.join("").trimEnd();
+    return wordmark.join("");
     // if (!process.stdout.isTTY && !process.stderr.isTTY) {
     //   const result = []
     //   for (const row of wordmark) {

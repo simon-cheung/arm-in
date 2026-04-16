@@ -3,6 +3,7 @@ import { For, createMemo, createSignal, onCleanup, type JSX } from "solid-js"
 import { useTheme, tint } from "@tui/context/theme"
 import { Sound } from "@tui/util/sound"
 import { logo } from "@/cli/logo"
+import { UI } from "@/cli/ui"
 
 // Shadow markers (rendered chars in parens):
 // _ = full shadow cell (space with bg=shadow)
@@ -579,6 +580,36 @@ export function Logo() {
     })
   }
 
+  const renderSimpleLine = (
+    line: string,
+    y: number,
+    ink: RGBA,
+    bold: boolean,
+    off: number,
+    frame: Frame,
+    dusk: Frame,
+  ): JSX.Element[] => {
+    const shadow = tint(theme.background, ink, 0.25)
+    const attrs = bold ? TextAttributes.BOLD : undefined
+
+    return [...line].map((char, i) => {
+      const h = field(off + i, y, frame)
+      const n = wave(off + i, y, frame, lit(char)) + h
+      const s = wave(off + i, y, dusk, false) + h
+      const p = lit(char) ? pick(off + i, y, frame) : 0
+      const e = lit(char) ? trace(off + i, y, frame) : 0
+      const b = lit(char) ? bloom(off + i, y, frame) : 0
+      const q = shimmer(off + i, y, frame)
+
+      return (
+        <text fg={shade(ink, theme, n + p + e + b)} attributes={attrs} selectable={false}>
+          {char}
+        </text>
+      )
+    })
+  }
+
+
   onCleanup(() => {
     stop()
     hum = false
@@ -607,6 +638,7 @@ export function Logo() {
     }
   }
 
+  const logstr = UI.logoLst();
   return (
     <box ref={(item: BoxRenderable) => (box = item)}>
       <box
@@ -618,7 +650,15 @@ export function Logo() {
         zIndex={1}
         onMouse={mouse}
       />
-      <For each={logo.left}>
+      <For each={logstr}>
+        {(line, index) => (
+          <box flexDirection="row" gap={1}>
+            <box flexDirection="row">{renderSimpleLine(line, index(), theme.textMuted, false, 0, frame(), dusk())}</box>
+          </box>
+        )}
+      </For>
+
+      {/* <For each={logo.left}>
         {(line, index) => (
           <box flexDirection="row" gap={1}>
             <box flexDirection="row">{renderLine(line, index(), theme.textMuted, false, 0, frame(), dusk())}</box>
@@ -627,7 +667,7 @@ export function Logo() {
             </box>
           </box>
         )}
-      </For>
+      </For> */}
     </box>
   )
 }
