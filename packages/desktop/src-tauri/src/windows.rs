@@ -53,7 +53,7 @@ impl MainWindow {
             app,
             decorations,
         )
-        .title("OpenCode")
+        .title( option_env!("OPENCODE_DESKTOP_TITLE").unwrap_or("OpenCode"))
         .disable_drag_drop_handler()
         .zoom_hotkeys_enabled(false)
         .visible(true)
