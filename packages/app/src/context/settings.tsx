@@ -26,6 +26,7 @@ export interface Settings {
     showReasoningSummaries: boolean
     shellToolPartsExpanded: boolean
     editToolPartsExpanded: boolean
+    playgroundEnabled: boolean
   }
   updates: {
     startup: boolean
@@ -92,6 +93,7 @@ const defaultSettings: Settings = {
     showReasoningSummaries: false,
     shellToolPartsExpanded: false,
     editToolPartsExpanded: false,
+    playgroundEnabled: true,
   },
   updates: {
     startup: true,
@@ -182,6 +184,13 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setEditToolPartsExpanded(value: boolean) {
           setStore("general", "editToolPartsExpanded", value)
+        },
+        playgroundEnabled: withFallback(
+          () => store.general?.playgroundEnabled,
+          defaultSettings.general.playgroundEnabled,
+        ),
+        setPlaygroundEnabled(value: boolean) {
+          setStore("general", "playgroundEnabled", value)
         },
       },
       updates: {

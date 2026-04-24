@@ -9,12 +9,22 @@ import type {
 } from "@opencode-ai/sdk/v2/client"
 import { showToast } from "@opencode-ai/ui/toast"
 import { getFilename } from "@opencode-ai/util/path"
-import { createContext, getOwner, onCleanup, onMount, type ParentProps, untrack, useContext } from "solid-js"
+import {
+  createContext,
+  createSignal,
+  getOwner,
+  onCleanup,
+  onMount,
+  type ParentProps,
+  untrack,
+  useContext,
+} from "solid-js"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { Persist, persisted } from "@/utils/persist"
 import type { InitError } from "../pages/error"
 import { useGlobalSDK } from "./global-sdk"
+import { useLayout } from "./layout"
 import { bootstrapDirectory, bootstrapGlobal, clearProviderRev } from "./global-sync/bootstrap"
 import { createChildStoreManager } from "./global-sync/child-store"
 import { applyDirectoryEvent, applyGlobalEvent, cleanupDroppedSessionCaches } from "./global-sync/event-reducer"
@@ -51,6 +61,9 @@ function createGlobalSync() {
   const booting = new Map<string, Promise<void>>()
   const sessionLoads = new Map<string, Promise<void>>()
   const sessionMeta = new Map<string, { limit: number }>()
+
+  const [playgroundUrl, setPlaygroundUrl] = createSignal<string>("")
+  const [playgroundHtml, setPlaygroundHtml] = createSignal<string | undefined>(undefined)
 
   const [projectCache, setProjectCache, projectInit] = persisted(
     Persist.global("globalSync.project", ["globalSync.project.v1"]),
@@ -325,6 +338,15 @@ function createGlobalSync() {
           })
       },
     })
+
+    const evt = event as { type: string; properties?: unknown }
+    if (evt.type === "playground.opened") {
+      const props = evt.properties as { url: string; html?: string }
+      queueMicrotask(() => {
+        setPlaygroundUrl(props.url)
+        setPlaygroundHtml(props.html)
+      })
+    }
   })
 
   onCleanup(unsub)
@@ -413,6 +435,11 @@ function createGlobalSync() {
     project: projectApi,
     todo: {
       set: setSessionTodo,
+    },
+    playground: {
+      url: playgroundUrl,
+      html: playgroundHtml,
+      setUrl: setPlaygroundUrl,
     },
   }
 }

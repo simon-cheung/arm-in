@@ -37,6 +37,8 @@ export function SessionSidePanel(props: {
   focusReviewDiff: (path: string) => void
   reviewSnap: boolean
   size: Sizing
+  playgroundPanel: () => JSX.Element
+  canPlayground: () => boolean
 }) {
   const layout = useLayout()
   const file = useFile()
@@ -51,6 +53,7 @@ export function SessionSidePanel(props: {
   const fileOpen = createMemo(() => isDesktop() && layout.fileTree.opened())
   const open = createMemo(() => reviewOpen() || fileOpen())
   const reviewTab = createMemo(() => isDesktop())
+  const playgroundTab = createMemo(() => isDesktop() && props.canPlayground())
   const panelWidth = createMemo(() => {
     if (!open()) return "0px"
     if (reviewOpen()) return `calc(100% - ${layout.session.width()}px)`
@@ -124,8 +127,10 @@ export function SessionSidePanel(props: {
     normalizeTab,
     review: reviewTab,
     hasReview: props.canReview,
+    playground: playgroundTab,
   })
   const contextOpen = tabState.contextOpen
+  const playgroundOpen = tabState.playgroundOpen
   const openedTabs = tabState.openedTabs
   const activeTab = tabState.activeTab
   const activeFileTab = tabState.activeFileTab
@@ -266,6 +271,33 @@ export function SessionSidePanel(props: {
                           </div>
                         </Tabs.Trigger>
                       </Show>
+                      <Show when={playgroundOpen()}>
+                        <Tabs.Trigger
+                          value="playground"
+                          closeButton={
+                            <TooltipKeybind
+                              title={language.t("common.closeTab")}
+                              keybind={command.keybind("tab.close")}
+                              placement="bottom"
+                              gutter={10}
+                            >
+                              <IconButton
+                                icon="close-small"
+                                variant="ghost"
+                                class="h-5 w-5"
+                                onClick={() => tabs().close("playground")}
+                                aria-label={language.t("common.closeTab")}
+                              />
+                            </TooltipKeybind>
+                          }
+                          hideCloseButton
+                          onMiddleClick={() => tabs().close("playground")}
+                        >
+                          <div class="flex items-center gap-1.5">
+                            <div>{language.t("session.tab.playground")}</div>
+                          </div>
+                        </Tabs.Trigger>
+                      </Show>
                       <SortableProvider ids={openedTabs()}>
                         <For each={openedTabs()}>{(tab) => <SortableTab tab={tab} onTabClose={tabs().close} />}</For>
                       </SortableProvider>
@@ -318,6 +350,12 @@ export function SessionSidePanel(props: {
                           <SessionContextTab />
                         </div>
                       </Show>
+                    </Tabs.Content>
+                  </Show>
+
+                  <Show when={playgroundOpen()}>
+                    <Tabs.Content value="playground" class="flex flex-col h-full overflow-hidden contain-strict">
+                      <Show when={activeTab() === "playground"}>{props.playgroundPanel()}</Show>
                     </Tabs.Content>
                   </Show>
 

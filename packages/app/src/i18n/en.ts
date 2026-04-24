@@ -524,6 +524,7 @@ export const dict = {
   "session.tab.session": "Session",
   "session.tab.review": "Review",
   "session.tab.context": "Context",
+  "session.tab.playground": "Playground",
   "session.panel.reviewAndFiles": "Review and files",
   "session.review.filesChanged": "{{count}} Files Changed",
   "session.review.change.one": "Change",
@@ -749,6 +750,8 @@ export const dict = {
   "settings.general.row.editToolPartsExpanded.title": "Expand edit tool parts",
   "settings.general.row.editToolPartsExpanded.description":
     "Show edit, write, and patch tool parts expanded by default in the timeline",
+  "settings.general.row.playgroundEnabled.title": "Enable playground tab",
+  "settings.general.row.playgroundEnabled.description": "Allow the LLM to open URLs in a playground tab for preview",
 
   "settings.general.row.wayland.title": "Use native Wayland",
   "settings.general.row.wayland.description": "Disable X11 fallback on Wayland. Requires restart.",

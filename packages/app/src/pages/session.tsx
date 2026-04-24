@@ -51,6 +51,7 @@ import {
 } from "@/pages/session/helpers"
 import { MessageTimeline } from "@/pages/session/message-timeline"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
+import { SessionPlaygroundTab } from "@/pages/session/playground-tab"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { syncSessionModel } from "@/pages/session/session-model-helpers"
 import { SessionSidePanel } from "@/pages/session/session-side-panel"
@@ -436,12 +437,14 @@ export default function Page() {
   const hasSessionReview = createMemo(() => sessionCount() > 0)
   const canReview = createMemo(() => !!sync.project)
   const reviewTab = createMemo(() => isDesktop())
+  const canPlayground = createMemo(() => isDesktop())
   const tabState = createSessionTabs({
     tabs,
     pathFromTab: file.pathFromTab,
     normalizeTab,
     review: reviewTab,
     hasReview: canReview,
+    playground: canPlayground,
   })
   const contextOpen = tabState.contextOpen
   const openedTabs = tabState.openedTabs
@@ -1254,6 +1257,19 @@ export default function Page() {
     </div>
   )
 
+  const playgroundPanel = () => (
+    <div class="h-full w-full overflow-hidden">
+      <SessionPlaygroundTab url={globalSync.playground.url} html={globalSync.playground.html} />
+    </div>
+  )
+
+  createEffect(() => {
+    const url = globalSync.playground.url()
+    if (url) {
+      tabs().open("playground")
+    }
+  })
+
   createEffect(
     on(
       activeFileTab,
@@ -2053,6 +2069,8 @@ export default function Page() {
           focusReviewDiff={focusReviewDiff}
           reviewSnap={ui.reviewSnap}
           size={size}
+          playgroundPanel={playgroundPanel}
+          canPlayground={canPlayground}
         />
       </div>
 

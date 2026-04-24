@@ -16,6 +16,7 @@ type TabsInput = {
   normalizeTab: (tab: string) => string
   review?: Accessor<boolean>
   hasReview?: Accessor<boolean>
+  playground?: Accessor<boolean>
 }
 
 export const getSessionKey = (dir: string | undefined, id: string | undefined) => `${dir ?? ""}${id ? `/${id}` : ""}`
@@ -23,7 +24,11 @@ export const getSessionKey = (dir: string | undefined, id: string | undefined) =
 export const createSessionTabs = (input: TabsInput) => {
   const review = input.review ?? (() => false)
   const hasReview = input.hasReview ?? (() => false)
+  const playground = input.playground ?? (() => false)
   const contextOpen = createMemo(() => input.tabs().active() === "context" || input.tabs().all().includes("context"))
+  const playgroundOpen = createMemo(
+    () => input.tabs().active() === "playground" || input.tabs().all().includes("playground"),
+  )
   const openedTabs = createMemo(
     () => {
       const seen = new Set<string>()
@@ -31,7 +36,7 @@ export const createSessionTabs = (input: TabsInput) => {
         .tabs()
         .all()
         .flatMap((tab) => {
-          if (tab === "context" || tab === "review") return []
+          if (tab === "context" || tab === "review" || tab === "playground") return []
           const value = input.pathFromTab(tab) ? input.normalizeTab(tab) : tab
           if (seen.has(value)) return []
           seen.add(value)
@@ -45,11 +50,13 @@ export const createSessionTabs = (input: TabsInput) => {
     const active = input.tabs().active()
     if (active === "context") return active
     if (active === "review" && review()) return active
+    if (active === "playground" && playground()) return active
     if (active && input.pathFromTab(active)) return input.normalizeTab(active)
 
     const first = openedTabs()[0]
     if (first) return first
     if (contextOpen()) return "context"
+    if (playgroundOpen()) return "playground"
     if (review() && hasReview()) return "review"
     return "empty"
   })
@@ -67,6 +74,7 @@ export const createSessionTabs = (input: TabsInput) => {
 
   return {
     contextOpen,
+    playgroundOpen,
     openedTabs,
     activeTab,
     activeFileTab,

@@ -96,6 +96,7 @@ function nextSessionTabsForOpen(current: SessionTabs | undefined, tab: string): 
   const all = current?.all ?? []
   if (tab === "review") return { all: all.filter((x) => x !== "review"), active: tab }
   if (tab === "context") return { all: [tab, ...all.filter((x) => x !== tab)], active: tab }
+  if (tab === "playground") return { all: [tab, ...all.filter((x) => x !== tab)], active: tab }
   if (!all.includes(tab)) return { all: [...all, tab], active: tab }
   return { all, active: tab }
 }
@@ -254,6 +255,9 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         },
         mobileSidebar: {
           opened: false,
+        },
+        playground: {
+          url: "" as string,
         },
         sessionTabs: {} as Record<string, SessionTabs>,
         sessionView: {} as Record<string, SessionView>,
@@ -659,10 +663,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           setStore("fileTree", "opened", true)
         },
         close() {
-          if (!store.fileTree) {
-            setStore("fileTree", { opened: false, width: DEFAULT_FILE_TREE_WIDTH, tab: "changes" })
-            return
-          }
+          if (!store.fileTree) return
           setStore("fileTree", "opened", false)
         },
         toggle() {
@@ -670,14 +671,16 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
             setStore("fileTree", { opened: true, width: DEFAULT_FILE_TREE_WIDTH, tab: "changes" })
             return
           }
-          setStore("fileTree", "opened", (x) => !x)
+          setStore("fileTree", "opened", !store.fileTree.opened)
         },
         resize(width: number) {
-          if (!store.fileTree) {
-            setStore("fileTree", { opened: true, width, tab: "changes" })
-            return
-          }
           setStore("fileTree", "width", width)
+        },
+      },
+      playgroundPanel: {
+        url: createMemo(() => store.playground?.url ?? ""),
+        setUrl(url: string) {
+          setStore("playground", "url", url)
         },
       },
       session: {
