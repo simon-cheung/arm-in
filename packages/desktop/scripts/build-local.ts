@@ -17,7 +17,7 @@ console.log(`Updated package.json version to ${Script.version}`)
 console.log(`Building opencode-cli locally for ${sidecarConfig.rustTarget}`)
 const opencodeDir = path.resolve(desktopDir, "../opencode")
 const buildScript = path.join(opencodeDir, "script/build.ts")
-await $`bun ${buildScript} --single`.cwd(opencodeDir)
+// await $`bun ${buildScript} --single`.cwd(opencodeDir)
 
 const cliName = process.env.OPENCODE_CLI_NAME ?? "opencode-cli"
 const target = sidecarConfig.rustTarget
