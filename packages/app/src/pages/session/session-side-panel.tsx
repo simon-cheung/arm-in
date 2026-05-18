@@ -294,7 +294,7 @@ export function SessionSidePanel(props: {
                           onMiddleClick={() => tabs().close("playground")}
                         >
                           <div class="flex items-center gap-1.5">
-                            <div>{language.t("session.tab.playground")}</div>
+                            <div>Playground</div>
                           </div>
                         </Tabs.Trigger>
                       </Show>

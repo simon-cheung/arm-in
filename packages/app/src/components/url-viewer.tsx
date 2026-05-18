@@ -3,6 +3,7 @@ import { createEffect, onMount } from "solid-js"
 export function UrlViewer(props: { url: string; html?: string }) {
   let iframeRef: HTMLIFrameElement | undefined
   let lastHtml: string | undefined
+  let lastUrl: string | undefined
 
   const sendHtml = () => {
     if (!iframeRef?.contentWindow) return
@@ -20,7 +21,12 @@ export function UrlViewer(props: { url: string; html?: string }) {
   createEffect(() => {
     const url = props.url
     if (iframeRef) {
-      iframeRef.src = url
+      if(url !== lastUrl) {
+        iframeRef.src = url
+        lastUrl = url
+      }else{
+        console.log("[UrlViewer] URL unchanged, not updating iframe src")
+      }
       lastHtml = undefined
       if (props.html) {
         sendHtml()
