@@ -1,11 +1,15 @@
 export function createBlobUrl(html: string): string {
   const wrapped = `<!DOCTYPE html><html><head><meta charset="utf-8"><script>
 window.addEventListener('message', function(e) {
-  if (e.data && e.data.type === 'playground.html' && e.data.html) {
-    try {
-      eval(e.data.html);
-    } catch (err) {
-      console.error('playground.html error:', err);
+  if (e.data) {
+    if (e.data.type === 'playground.html' && e.data.html) {
+      try {
+        eval(e.data.html);
+      } catch (err) {
+        console.error('playground.html error:', err);
+      }
+    } else if (e.data.action === 'download') {
+      window.parent.postMessage(e.data, '*');
     }
   }
 });
@@ -17,11 +21,15 @@ window.addEventListener('message', function(e) {
 export function createBlobUrlWithScript(html: string, script: string): string {
   const wrapped = `<!DOCTYPE html><html><head><meta charset="utf-8"><script>
 window.addEventListener('message', function(e) {
-  if (e.data && e.data.type === 'playground.html' && e.data.html) {
-    try {
-      eval(e.data.html);
-    } catch (err) {
-      console.error('playground.html error:', err);
+  if (e.data) {
+    if (e.data.type === 'playground.html' && e.data.html) {
+      try {
+        eval(e.data.html);
+      } catch (err) {
+        console.error('playground.html error:', err);
+      }
+    } else if (e.data.action === 'download') {
+      window.parent.postMessage(e.data, '*');
     }
   }
 });

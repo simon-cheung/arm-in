@@ -220,6 +220,8 @@ export const dict = {
   "common.loading": "Loading",
   "common.loading.ellipsis": "...",
   "common.cancel": "Cancel",
+  "common.confirm": "Confirm",
+  "common.change": "Change",
   "common.open": "Open",
   "common.connect": "Connect",
   "common.disconnect": "Disconnect",
@@ -364,6 +366,13 @@ export const dict = {
   "dialog.releaseNotes.action.next": "Next",
   "dialog.releaseNotes.action.hideFuture": "Don't show these in the future",
   "dialog.releaseNotes.media.alt": "Release preview",
+
+  "dialog.remoteWorkspace.title": "Open Remote Workspace",
+  "dialog.remoteWorkspace.url": "URL",
+  "dialog.remoteWorkspace.target": "Target Directory",
+  "dialog.remoteWorkspace.extractedTo": "Extracted to",
+  "dialog.remoteWorkspace.downloading": "Downloading...",
+  "dialog.remoteWorkspace.extracting": "Extracting...",
 
   "context.breakdown.title": "Context Breakdown",
   "context.breakdown.note": 'Approximate breakdown of input tokens. "Other" includes tool definitions and overhead.',

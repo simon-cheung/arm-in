@@ -12,6 +12,15 @@ export const PlaygroundOpened = BusEvent.define(
   }),
 )
 
+export const PlaygroundMessage = BusEvent.define(
+  "playground.message",
+  z.object({
+    action: z.literal("download"),
+    url: z.string(),
+    suggestedName: z.string().optional(),
+  }),
+)
+
 export const PlaygroundTool = Tool.define(
   "playground",
   Effect.gen(function* () {

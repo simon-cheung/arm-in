@@ -1,6 +1,12 @@
 import { createEffect, onMount } from "solid-js"
 
-export function UrlViewer(props: { url: string; html?: string }) {
+export interface UrlViewerMessage {
+  action: "download"
+  url: string
+  suggestedName?: string
+}
+
+export function UrlViewer(props: { url: string; html?: string; onMessage?: (msg: UrlViewerMessage) => void }) {
   let iframeRef: HTMLIFrameElement | undefined
   let lastHtml: string | undefined
   let lastUrl: string | undefined
@@ -16,15 +22,25 @@ export function UrlViewer(props: { url: string; html?: string }) {
 
   onMount(() => {
     if (iframeRef) iframeRef.src = props.url
+
+    const handleMessage = (e: MessageEvent) => {
+      console.log("[UrlViewer] Received message:", e.data)
+      if (e.data?.action === "download") {
+        console.log("[UrlViewer] Download action detected, calling onMessage")
+        props.onMessage?.({ action: "download", url: e.data.url, suggestedName: e.data.suggestedName })
+      }
+    }
+    window.addEventListener("message", handleMessage)
+    return () => window.removeEventListener("message", handleMessage)
   })
 
   createEffect(() => {
     const url = props.url
     if (iframeRef) {
-      if(url !== lastUrl) {
+      if (url !== lastUrl) {
         iframeRef.src = url
         lastUrl = url
-      }else{
+      } else {
         console.log("[UrlViewer] URL unchanged, not updating iframe src")
       }
       lastHtml = undefined

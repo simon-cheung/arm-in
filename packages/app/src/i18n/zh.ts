@@ -240,6 +240,8 @@ export const dict = {
   "common.loading": "加载中",
   "common.loading.ellipsis": "...",
   "common.cancel": "取消",
+  "common.confirm": "确认",
+  "common.change": "更改",
   "common.connect": "连接",
   "common.disconnect": "断开连接",
   "common.continue": "提交",
@@ -832,6 +834,14 @@ export const dict = {
   "dialog.releaseNotes.action.next": "下一步",
   "dialog.releaseNotes.action.hideFuture": "不再显示",
   "dialog.releaseNotes.media.alt": "发布预览",
+
+  "dialog.remoteWorkspace.title": "打开远程工作区",
+  "dialog.remoteWorkspace.url": "网址",
+  "dialog.remoteWorkspace.target": "目标目录",
+  "dialog.remoteWorkspace.extractedTo": "解压到",
+  "dialog.remoteWorkspace.downloading": "下载中...",
+  "dialog.remoteWorkspace.extracting": "解压中...",
+
   "toast.project.reloadFailed.title": "无法重新加载 {{project}}",
   "error.server.invalidConfiguration": "配置无效",
   "common.moreCountSuffix": " (还有 {{count}} 个)",

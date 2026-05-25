@@ -17,6 +17,7 @@ import { errors } from "../error"
 import { lazy } from "../../util/lazy"
 import { Effect, Option } from "effect"
 import { WorkspaceRoutes } from "./workspace"
+import { RemoteWorkspaceRoutes } from "./remote-workspace"
 import { Agent } from "@/agent/agent"
 import { HttpApiRoutes } from "./httpapi"
 
@@ -41,6 +42,7 @@ const ConsoleSwitchBody = z.object({
 export const ExperimentalRoutes = lazy(() =>
   new Hono()
     .route("/httpapi", HttpApiRoutes())
+    .route("/remote-workspace", RemoteWorkspaceRoutes())
     .get(
       "/console",
       describeRoute({
