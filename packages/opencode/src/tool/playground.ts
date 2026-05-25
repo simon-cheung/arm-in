@@ -19,9 +19,13 @@ export const PlaygroundTool = Tool.define(
 
     return {
       description:
-        "Open a URL in the playground tab for preview. Supports http://, https://, and blob:// URLs. Optionally inject JavaScript into the page after load.",
+        'Open a URL in the playground tab for preview. Supports:\n- http://, https://, blob:// for web URLs\n- workspace://{path} for files in workspace (e.g., "workspace://html/index.html")',
       parameters: z.object({
-        url: z.string().describe("The URL to open in the playground (http://, https://, or blob://)"),
+        url: z
+          .string()
+          .describe(
+            'The URL to open in the playground. Supports:\n- http://, https://, blob:// for web URLs\n- workspace://{path} for files in workspace (e.g., "workspace://html/index.html")',
+          ),
         html: z.string().optional().describe("JavaScript to execute after the page loads"),
       }),
       execute: (params: { url: string; html?: string }, ctx: Tool.Context) =>

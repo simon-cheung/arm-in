@@ -7,6 +7,7 @@ import type {
   ProviderListResponse,
   Todo,
 } from "@opencode-ai/sdk/v2/client"
+import { base64Encode } from "@opencode-ai/util/encode"
 import { showToast } from "@opencode-ai/ui/toast"
 import { getFilename } from "@opencode-ai/util/path"
 import {
@@ -343,7 +344,13 @@ function createGlobalSync() {
     if (evt.type === "playground.opened") {
       const props = evt.properties as { url: string; html?: string }
       queueMicrotask(() => {
-        setPlaygroundUrl(props.url)
+        let finalUrl = props.url
+        if (props.url.startsWith("workspace://")) {
+          const filePath = props.url.slice("workspace://".length)
+          const encoded = base64Encode(directory)
+          finalUrl = `${globalSDK.url}/__workdir__/${encoded}/${filePath}`
+        }
+        setPlaygroundUrl(finalUrl)
         setPlaygroundHtml(props.html)
       })
     }
@@ -440,6 +447,7 @@ function createGlobalSync() {
       url: playgroundUrl,
       html: playgroundHtml,
       setUrl: setPlaygroundUrl,
+      setHtml: setPlaygroundHtml,
     },
   }
 }

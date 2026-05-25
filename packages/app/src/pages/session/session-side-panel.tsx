@@ -23,6 +23,7 @@ import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
 import { FileTabContent } from "@/pages/session/file-tabs"
 import { createOpenSessionFileTab, createSessionTabs, getTabReorderIndex, type Sizing } from "@/pages/session/helpers"
 import { setSessionHandoff } from "@/pages/session/handoff"
+import { useGlobalSync } from "@/context/global-sync"
 import { useSessionLayout } from "@/pages/session/session-layout"
 
 export function SessionSidePanel(props: {
@@ -45,6 +46,7 @@ export function SessionSidePanel(props: {
   const language = useLanguage()
   const command = useCommand()
   const dialog = useDialog()
+  const globalSync = useGlobalSync()
   const { sessionKey, tabs, view } = useSessionLayout()
 
   const isDesktop = createMediaQuery("(min-width: 768px)")
@@ -285,13 +287,21 @@ export function SessionSidePanel(props: {
                                 icon="close-small"
                                 variant="ghost"
                                 class="h-5 w-5"
-                                onClick={() => tabs().close("playground")}
+                                onClick={() => {
+                                  tabs().close("playground")
+                                  // globalSync.playground.setUrl("")
+                                  // globalSync.playground.setHtml(undefined)
+                                }}
                                 aria-label={language.t("common.closeTab")}
                               />
                             </TooltipKeybind>
                           }
                           hideCloseButton
-                          onMiddleClick={() => tabs().close("playground")}
+                          onMiddleClick={() => {
+                            tabs().close("playground")
+                            // globalSync.playground.setUrl("")
+                            // globalSync.playground.setHtml(undefined)
+                          }}
                         >
                           <div class="flex items-center gap-1.5">
                             <div>Playground</div>

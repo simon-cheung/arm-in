@@ -1265,8 +1265,9 @@ export default function Page() {
 
   createEffect(() => {
     const url = globalSync.playground.url()
-    const active = tabs().active()
-    if (url && active !== "playground") {
+    const all = tabs().all()
+
+    if (url && !all.includes("playground")) {
       tabs().open("playground")
     }
   })
