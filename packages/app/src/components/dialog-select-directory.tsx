@@ -341,15 +341,18 @@ export function DialogSelectDirectory(props: DialogSelectDirectoryProps) {
         ref={(r) => (list = r)}
         onFilter={(value) => setFilter(cleanInput(value))}
         onKeyEvent={(e, item) => {
-          if (e.key !== "Tab") return
-          if (e.shiftKey) return
-          if (!item) return
+          if (e.key === "Tab" && !e.shiftKey && item) {
+            e.preventDefault()
+            e.stopPropagation()
 
-          e.preventDefault()
-          e.stopPropagation()
+            const value = displayPath(item.absolute, filter(), home())
+            list?.setFilter(value.endsWith("/") ? value : value + "/")
+          }
 
-          const value = displayPath(item.absolute, filter(), home())
-          list?.setFilter(value.endsWith("/") ? value : value + "/")
+          if (e.key === "Enter" && !e.isComposing && item) {
+            e.preventDefault()
+            e.stopPropagation()
+          }
         }}
         onSelect={(path) => {
           if (!path) return
