@@ -34,20 +34,14 @@ export const RemoteWorkspaceRoutes = lazy(() =>
     async (c) => {
       const { url, targetDir } = c.req.valid("json")
 
-      console.log(`[RemoteWorkspace] POST /download`)
-      console.log(`[RemoteWorkspace] url: ${url}`)
-      console.log(`[RemoteWorkspace] targetDir: ${targetDir}`)
-
       try {
         const extractedPath = await downloadAndExtract(url, targetDir, (stage: DownloadStage, percent?: number) => {
           console.log(`[RemoteWorkspace] ${stage}: ${percent ?? 100}%`)
         })
 
-        console.log(`[RemoteWorkspace] Success: ${extractedPath}`)
         return c.json({ path: extractedPath })
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        console.error(`[RemoteWorkspace] Error: ${message}`)
         return c.json({ error: message }, 500)
       }
     },

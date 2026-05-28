@@ -1,9 +1,7 @@
-import { createSignal, Show } from "solid-js"
-import { Button } from "@opencode-ai/ui/button"
+import { Component, createMemo, createSignal, Show } from "solid-js"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { Progress } from "@opencode-ai/ui/progress"
-import { useDialog } from "@opencode-ai/ui/context/dialog"
-import { Icon } from "@opencode-ai/ui/icon"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { useGlobalSync } from "@/context/global-sync"
 import { useLayout } from "@/context/layout"
@@ -12,15 +10,24 @@ import { useLanguage } from "@/context/language"
 import { base64Encode } from "@opencode-ai/util/encode"
 import { useNavigate } from "@solidjs/router"
 import { DialogSelectDirectory } from "./dialog-select-directory"
+import { Icon } from "@opencode-ai/ui/icon"
 
 interface DialogRemoteWorkspaceProps {
   url: string
   suggestedName?: string
 }
 
+function getArminCourseRoot(home: string){
+  if(home.endsWith('/')){
+    return home + 'armin-course'
+  }else{
+    return home + '/armin-course'
+  }
+}
+
 type Stage = "idle" | "downloading" | "extracting" | "done" | "error"
 
-export function DialogRemoteWorkspace(props: DialogRemoteWorkspaceProps) {
+export const DialogRemoteWorkspace: Component<DialogRemoteWorkspaceProps> = (props) => {
   const sdk = useGlobalSDK()
   const sync = useGlobalSync()
   const layout = useLayout()
@@ -31,20 +38,18 @@ export function DialogRemoteWorkspace(props: DialogRemoteWorkspaceProps) {
 
   const [stage, setStage] = createSignal<Stage>("idle")
   const [progress, setProgress] = createSignal(0)
-  const [targetDir, setTargetDir] = createSignal(sync.data.path.home || sync.data.path.directory || "")
+  const [targetDir, setTargetDir] = createSignal(getArminCourseRoot(sync.data.path.home || ""))
   const [extractedPath, setExtractedPath] = createSignal("")
   const [error, setError] = createSignal("")
   const [showDirPicker, setShowDirPicker] = createSignal(false)
 
-  const home = () => sync.data.path.home || ""
-  const start = () => sync.data.path.home || sync.data.path.directory || ""
-
-  const extractedPreview = () => {
+  const extractedPreview = createMemo(() => {
     const dir = targetDir()
     const name = props.suggestedName || getFilenameFromUrl(props.url)
     const extractedName = name.endsWith(".zip") ? name.slice(0, -4) : name
+    console.log('would down '+ name);
     return dir ? `${dir}/${extractedName}` : ""
-  }
+  })
 
   async function handleConfirm() {
     const dir = targetDir()
@@ -76,7 +81,6 @@ export function DialogRemoteWorkspace(props: DialogRemoteWorkspaceProps) {
 
       dialog.close()
     } catch (err) {
-      console.error(`[DialogRemoteWorkspace] Error:`, err)
       setStage("error")
       setError(err instanceof Error ? err.message : String(err))
     }
@@ -94,64 +98,87 @@ export function DialogRemoteWorkspace(props: DialogRemoteWorkspaceProps) {
   }
 
   return (
-    <Show when={!showDirPicker()}>
-      <Dialog
-        title={language.t("dialog.remoteWorkspace.title")}
-        action={
-          <Button
-            variant="primary"
-            disabled={!targetDir() || stage() === "downloading" || stage() === "extracting"}
-            onClick={handleConfirm}
-          >
-            {language.t("common.confirm")}
-          </Button>
-        }
-      >
-        <div class="flex flex-col gap-y-4 min-w-96">
-          <div class="flex flex-col gap-y-1">
-            <span class="text-12-regular text-text-weak">{language.t("dialog.remoteWorkspace.url")}</span>
-            <span class="text-14-regular text-text-base break-all">{props.url}</span>
+    <Show
+      when={!showDirPicker()}
+      fallback={
+        <DialogSelectDirectory
+          title={language.t("dialog.remoteWorkspace.target")}
+          multiple={false}
+          onSelect={handleDirectorySelect}
+        />
+      }
+    >
+      <Dialog size="normal" fit>
+        <div class="flex flex-col w-full h-full">
+          <div class="flex flex-col gap-y-6 px-5 py-5">
+            <div class="flex flex-col gap-y-4">
+              <div class="flex flex-col gap-y-1">
+                <span class="text-12-medium text-text-weak">{language.t("dialog.remoteWorkspace.url")}</span>
+                <span class="text-14-regular text-text-base break-all leading-tight">{props.url}</span>
+              </div>
+
+              <div class="flex flex-col gap-y-1">
+                <span class="text-12-medium text-text-weak">{language.t("dialog.remoteWorkspace.target")}</span>
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-x-3 px-3 py-2 rounded-md border border-border-base bg-surface-raised hover:bg-surface-raised-hover transition-colors"
+                  onClick={() => setShowDirPicker(true)}
+                >
+                  <Icon name="folder" size="small" class="text-text-weak shrink-0" />
+                  <span class="text-14-regular text-text-base truncate text-left flex-1 min-w-0">
+                    {targetDir() || language.t("dialog.remoteWorkspace.selectDirectory")}
+                  </span>
+                  <Icon name="chevron-down" size="small" class="text-text-weak shrink-0" />
+                </button>
+              </div>
+
+              <Show when={extractedPreview()}>
+                <div class="flex flex-col gap-y-1">
+                  <span class="text-12-medium text-text-weak">{language.t("dialog.remoteWorkspace.extractedTo")}</span>
+                  <div class="flex items-center gap-x-2">
+                    <Icon name="folder" size="small" class="text-text-weak shrink-0" />
+                    <span class="text-14-regular text-text-base">{extractedPreview()}</span>
+                  </div>
+                </div>
+              </Show>
+            </div>
+
+            <Show when={stage() === "downloading" || stage() === "extracting"}>
+              <div class="flex flex-col gap-y-2">
+                <Progress value={progress()} showValueLabel />
+                <span class="text-12-regular text-text-weak text-center">
+                  {stage() === "downloading"
+                    ? language.t("dialog.remoteWorkspace.downloading")
+                    : language.t("dialog.remoteWorkspace.extracting")}
+                </span>
+              </div>
+            </Show>
+
+            <Show when={stage() === "error"}>
+              <div class="flex items-center gap-x-2 px-3 py-2 rounded-md bg-critical-subtle">
+                <Icon name="circle-x" size="small" class="text-critical-base shrink-0" />
+                <span class="text-14-regular text-critical-base">{error()}</span>
+              </div>
+            </Show>
           </div>
 
-          <div class="flex flex-col gap-y-1">
-            <span class="text-12-regular text-text-weak">{language.t("dialog.remoteWorkspace.target")}</span>
-            <div class="flex items-center gap-x-2">
-              <span class="text-14-regular text-text-base break-all flex-1 min-w-0">{targetDir() || "-"}</span>
-              <Button variant="ghost" size="small" onClick={() => setShowDirPicker(true)}>
-                {language.t("common.change")}
-              </Button>
-            </div>
-          </div>
-
-          <Show when={extractedPreview()}>
-            <div class="flex flex-col gap-y-1">
-              <span class="text-12-regular text-text-weak">{language.t("dialog.remoteWorkspace.extractedTo")}</span>
-              <span class="text-14-regular text-text-base">{extractedPreview()}</span>
-            </div>
-          </Show>
-
-          <Show when={stage() === "downloading" || stage() === "extracting"}>
-            <div class="flex flex-col gap-y-2">
-              <Progress value={progress()} showValueLabel />
-              <span class="text-12-regular text-text-weak">
-                {stage() === "downloading"
-                  ? language.t("dialog.remoteWorkspace.downloading")
-                  : language.t("dialog.remoteWorkspace.extracting")}
-              </span>
-            </div>
-          </Show>
-
-          <Show when={stage() === "error"}>
-            <div class="flex items-center gap-x-2 text-critical-base">
-              <Icon name="circle-x" size="small" />
-              <span class="text-14-regular">{error()}</span>
-            </div>
-          </Show>
-
-          <div class="flex justify-end gap-x-2">
-            <Button variant="ghost" onClick={handleCancel}>
+          <div class="flex justify-end gap-x-2 px-5 py-3 border-t border-border-base">
+            <button
+              type="button"
+              class="px-4 py-2 text-14-regular text-text-base rounded-md hover:bg-surface-raised-hover transition-colors"
+              onClick={handleCancel}
+              disabled={stage() === "downloading" || stage() === "extracting"}
+            >
               {language.t("common.cancel")}
-            </Button>
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 text-14-medium text-white rounded-md bg-color-interactive enabled:hover:bg-color-interactive-hover enabled:active:bg-color-interactive-active disabled:opacity-50 transition-colors"
+              onClick={handleConfirm}
+              disabled={!targetDir() || stage() === "downloading" || stage() === "extracting"}
+            >
+              {language.t("common.confirm")}
+            </button>
           </div>
         </div>
       </Dialog>

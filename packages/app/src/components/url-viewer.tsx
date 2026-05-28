@@ -67,7 +67,7 @@ export function UrlViewer(props: { url: string; html?: string; onMessage?: (msg:
         ref={iframeRef}
         class="w-full h-full border-0"
         onLoad={handleLoad}
-        sandbox="allow-scripts allow-same-origin"
+        sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
       />
     </div>
   )

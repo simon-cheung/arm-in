@@ -1226,6 +1226,7 @@ export default function Layout(props: ParentProps) {
         (item) =>
           workspaceKey(item.worktree) === key || item.sandboxes?.some((sandbox) => workspaceKey(sandbox) === key),
       )
+      console.log(`input : ${directory}, output: ${project?.worktree}`)
     if (project) return project.worktree
 
     const known = Object.entries(store.workspaceOrder).find(

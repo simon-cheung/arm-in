@@ -841,6 +841,7 @@ export const dict = {
   "dialog.remoteWorkspace.extractedTo": "解压到",
   "dialog.remoteWorkspace.downloading": "下载中...",
   "dialog.remoteWorkspace.extracting": "解压中...",
+  "dialog.remoteWorkspace.selectDirectory": "选择目录",
 
   "toast.project.reloadFailed.title": "无法重新加载 {{project}}",
   "error.server.invalidConfiguration": "配置无效",

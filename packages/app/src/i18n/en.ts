@@ -373,6 +373,7 @@ export const dict = {
   "dialog.remoteWorkspace.extractedTo": "Extracted to",
   "dialog.remoteWorkspace.downloading": "Downloading...",
   "dialog.remoteWorkspace.extracting": "Extracting...",
+  "dialog.remoteWorkspace.selectDirectory": "Select a directory",
 
   "context.breakdown.title": "Context Breakdown",
   "context.breakdown.note": 'Approximate breakdown of input tokens. "Other" includes tool definitions and overhead.',
