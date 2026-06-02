@@ -22,6 +22,7 @@ const env = {
   OPENCODE_BUMP: process.env["OPENCODE_BUMP"],
   OPENCODE_VERSION: process.env["OPENCODE_VERSION"],
   OPENCODE_RELEASE: process.env["OPENCODE_RELEASE"],
+  OPENCODE_HOME_VIEW: process.env["OPENCODE_HOME_VIEW"],
 }
 const CHANNEL = await (async () => {
   if (env.OPENCODE_CHANNEL) return env.OPENCODE_CHANNEL
@@ -73,5 +74,8 @@ export const Script = {
   get team() {
     return team
   },
+  get homeview(){
+    return !!env.OPENCODE_HOME_VIEW
+  }
 }
 console.log(`opencode script`, JSON.stringify(Script, null, 2))

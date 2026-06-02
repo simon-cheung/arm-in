@@ -64,6 +64,7 @@ import { Persist, persisted } from "@/utils/persist"
 import { extractPromptFromParts } from "@/utils/prompt"
 import { same } from "@/utils/same"
 import { formatServerError } from "@/utils/server-errors"
+import { HOMEVIEW } from "@/env"
 
 const emptyUserMessages: UserMessage[] = []
 type FollowupItem = FollowupDraft & { id: string }
@@ -435,9 +436,10 @@ export default function Page() {
   const diffs = createMemo(() => (params.id ? list(sync.data.session_diff[params.id]) : []))
   const sessionCount = createMemo(() => Math.max(info()?.summary?.files ?? 0, diffs().length))
   const hasSessionReview = createMemo(() => sessionCount() > 0)
-  const canReview = createMemo(() => !!sync.project)
+  // const canReview = createMemo(() => !!sync.project)
+  const canReview = createMemo(() => false)
   const reviewTab = createMemo(() => isDesktop())
-  const canPlayground = createMemo(() => isDesktop())
+  const canPlayground = createMemo(() => isDesktop() || !!HOMEVIEW)
   const tabState = createSessionTabs({
     tabs,
     pathFromTab: file.pathFromTab,
@@ -1264,6 +1266,9 @@ export default function Page() {
   )
 
   createEffect(() => {
+    if (HOMEVIEW && !globalSync.playground.url()) {
+      globalSync.playground.setUrl(HOMEVIEW)
+    }
     const url = globalSync.playground.url()
     const all = tabs().all()
 

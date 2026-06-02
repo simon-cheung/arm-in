@@ -2,6 +2,7 @@ import { batch, createMemo, onCleanup, onMount, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { same } from "@/utils/same"
+import { HOMEVIEW } from "@/env"
 
 const emptyTabs: string[] = []
 
@@ -26,8 +27,8 @@ export const createSessionTabs = (input: TabsInput) => {
   const hasReview = input.hasReview ?? (() => false)
   const playground = input.playground ?? (() => false)
   const contextOpen = createMemo(() => input.tabs().active() === "context" || input.tabs().all().includes("context"))
-  const playgroundOpen = createMemo(
-    () => input.tabs().active() === "playground" || input.tabs().all().includes("playground"),
+  const playgroundOpen = createMemo(() =>
+    HOMEVIEW ? true : input.tabs().active() === "playground" || input.tabs().all().includes("playground"),
   )
   const openedTabs = createMemo(
     () => {

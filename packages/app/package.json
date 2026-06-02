@@ -10,10 +10,10 @@
   },
   "scripts": {
     "typecheck": "tsgo -b",
-    "start": "vite",
+    "start": "bun run --bun vite",
     "dev": "vite",
-    "build": "vite build",
-    "serve": "vite preview",
+    "build": "bun --bun vite build",
+    "serve": "bun --bun vite preview",
     "test": "bun run test:unit",
     "test:ci": "mkdir -p .artifacts/unit && bun test --preload ./happydom.ts ./src --reporter=junit --reporter-outfile=.artifacts/unit/junit.xml",
     "test:unit": "bun test --preload ./happydom.ts ./src",
@@ -25,6 +25,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@opencode-ai/script": "workspace:*",
     "@happy-dom/global-registrator": "20.0.11",
     "@playwright/test": "catalog:",
     "@tailwindcss/vite": "catalog:",

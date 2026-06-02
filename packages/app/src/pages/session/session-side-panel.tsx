@@ -25,6 +25,8 @@ import { createOpenSessionFileTab, createSessionTabs, getTabReorderIndex, type S
 import { setSessionHandoff } from "@/pages/session/handoff"
 import { useGlobalSync } from "@/context/global-sync"
 import { useSessionLayout } from "@/pages/session/session-layout"
+import { HOMEVIEW } from "@/env"
+import { showUrlInputDialog } from "@/components/dialog-url-input"
 
 export function SessionSidePanel(props: {
   canReview: () => boolean
@@ -277,41 +279,55 @@ export function SessionSidePanel(props: {
                         <Tabs.Trigger
                           value="playground"
                           closeButton={
-                            <TooltipKeybind
-                              title={language.t("common.closeTab")}
-                              keybind={command.keybind("tab.close")}
-                              placement="bottom"
-                              gutter={10}
-                            >
-                              <IconButton
-                                icon="close-small"
-                                variant="ghost"
-                                class="h-5 w-5"
-                                onClick={() => {
-                                  tabs().close("playground")
-                                  // globalSync.playground.setUrl("")
-                                  // globalSync.playground.setHtml(undefined)
-                                }}
-                                aria-label={language.t("common.closeTab")}
-                              />
-                            </TooltipKeybind>
+                            !HOMEVIEW ? (
+                              <TooltipKeybind
+                                title={language.t("common.closeTab")}
+                                keybind={command.keybind("tab.close")}
+                                placement="bottom"
+                                gutter={10}
+                              >
+                                <IconButton
+                                  icon="close-small"
+                                  variant="ghost"
+                                  class="h-5 w-5"
+                                  onClick={() => {
+                                    tabs().close("playground")
+                                  }}
+                                  aria-label={language.t("common.closeTab")}
+                                />
+                              </TooltipKeybind>
+                            ) : undefined
                           }
-                          hideCloseButton
+                          hideCloseButton={!!HOMEVIEW}
                           onMiddleClick={() => {
-                            tabs().close("playground")
-                            // globalSync.playground.setUrl("")
-                            // globalSync.playground.setHtml(undefined)
+                            if (!HOMEVIEW) tabs().close("playground")
                           }}
                         >
                           <div class="flex items-center gap-1.5">
-                            <div>Playground</div>
+                            <div>{HOMEVIEW ? "HomeView" : "Playground"}</div>
                           </div>
                         </Tabs.Trigger>
                       </Show>
                       <SortableProvider ids={openedTabs()}>
                         <For each={openedTabs()}>{(tab) => <SortableTab tab={tab} onTabClose={tabs().close} />}</For>
                       </SortableProvider>
-                      <div class="bg-background-stronger h-full shrink-0 sticky right-0 z-10 flex items-center justify-center pr-3">
+                      <div class="bg-background-stronger h-full shrink-0 sticky right-0 z-10 flex items-center justify-center gap-1 pr-3">
+                        <Show when={HOMEVIEW}>
+                          <TooltipKeybind title="Open URL" keybind="" class="flex items-center">
+                            <IconButton
+                              icon="magnifying-glass"
+                              variant="ghost"
+                              iconSize="large"
+                              class="!rounded-md"
+                              onClick={() => {
+                                showUrlInputDialog(dialog, (url: string) => {
+                                  globalSync.playground.setUrl(url)
+                                })
+                              }}
+                              aria-label="Open URL"
+                            />
+                          </TooltipKeybind>
+                        </Show>
                         <TooltipKeybind
                           title={language.t("command.file.open")}
                           keybind={command.keybind("file.open")}

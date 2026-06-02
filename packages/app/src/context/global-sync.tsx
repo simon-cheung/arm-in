@@ -66,6 +66,16 @@ function createGlobalSync() {
   const [playgroundUrl, setPlaygroundUrl] = createSignal<string>("")
   const [playgroundHtml, setPlaygroundHtml] = createSignal<string | undefined>(undefined)
 
+  const setPlaygroundUrlWithWorkspace = (url: string) => {
+    let finalUrl = url
+    if (url.startsWith("workspace://")) {
+      const filePath = url.slice("workspace://".length).replace(/^\/+/, "")
+      const encoded = base64Encode(globalStore.path.directory)
+      finalUrl = `${globalSDK.url}/__workdir__/${encoded}/${filePath}`
+    }
+    setPlaygroundUrl(finalUrl)
+  }
+
   const [projectCache, setProjectCache, projectInit] = persisted(
     Persist.global("globalSync.project", ["globalSync.project.v1"]),
     createStore({ value: [] as Project[] }),
@@ -446,7 +456,7 @@ function createGlobalSync() {
     playground: {
       url: playgroundUrl,
       html: playgroundHtml,
-      setUrl: setPlaygroundUrl,
+      setUrl: setPlaygroundUrlWithWorkspace,
       setHtml: setPlaygroundHtml,
     },
   }
