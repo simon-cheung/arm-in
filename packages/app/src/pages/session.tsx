@@ -1293,7 +1293,9 @@ export default function Page() {
   const [playgroundReloadKey, setPlaygroundReloadKey] = createSignal(0)
 
   const probePlayground = async () => {
-    const dir = params.dir
+    const rawDir = params.dir
+    if (!rawDir) return
+    const dir = decode64(rawDir) ?? ""
     if (!dir) return
     try {
       const res = await sdk.client.file.read({ path: "_playground/index.html" })
@@ -1312,11 +1314,19 @@ export default function Page() {
     setPlaygroundReloadKey((k) => k + 1)
   }
 
+  const currentProjectDir = createMemo(() => sync.data.path.directory)
+  const isProjectReady = createMemo(() => {
+    const expected = decode64(params.dir) ?? ""
+    if (!expected) return false
+    return currentProjectDir() === expected
+  })
+
   createEffect(
     on(
       () => globalSync.playground.url(),
       (url) => {
         if (!url) return
+        if (!isProjectReady()) return
         const dir = decode64(params.dir) ?? ""
         view().playground.setUrl(url, dir)
         tabs().open("playground")
@@ -1324,14 +1334,24 @@ export default function Page() {
     ),
   )
 
+  const runProbe = () => {
+    if (!isProjectReady()) return
+    void probePlayground()
+  }
+
   createEffect(
     on(
       () => params.dir,
       () => {
-        void probePlayground()
+        runProbe()
       },
-      { defer: true },
     ),
+  )
+
+  createEffect(
+    on(isProjectReady, (ready) => {
+      if (ready) runProbe()
+    }),
   )
 
   createEffect(
