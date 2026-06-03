@@ -1270,20 +1270,9 @@ export default function Page() {
 
   const playgroundPanel = () => {
     const urlAccessor = view().playground.url
-    const url = () => urlAccessor()
     return (
-      <div class="relative h-full w-full overflow-hidden">
-        <div class="flex items-center gap-2 px-2 py-1 text-11-regular text-text-weaker border-b border-border-weaker-base truncate">
-          <span class="shrink-0">URL:</span>
-          <span class="truncate">{url() || "(empty)"}</span>
-        </div>
-        <div class="absolute inset-0 top-7 bottom-0">
-          <SessionPlaygroundTab
-            url={urlAccessor}
-            code={globalSync.playground.code}
-            refreshKey={playgroundReloadKey()}
-          />
-        </div>
+      <div class="h-full w-full overflow-hidden">
+        <SessionPlaygroundTab url={urlAccessor} code={globalSync.playground.code} refreshKey={playgroundReloadKey()} />
       </div>
     )
   }
@@ -1970,7 +1959,9 @@ export default function Page() {
         activeTab={activeTab}
         openedTabs={openedTabs}
         homeviewOpen={homeviewOpen}
+        homeviewUrl={view().homeview.url}
         playgroundOpen={playgroundOpen}
+        playgroundUrl={view().playground.url}
         playgroundRefresh={playgroundRefresh}
         contextOpen={contextOpen}
         reviewTab={reviewTab}

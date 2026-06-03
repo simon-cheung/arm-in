@@ -3,7 +3,7 @@ import { Portal } from "solid-js/web"
 import { createStore } from "solid-js/store"
 import { Tabs } from "@opencode-ai/ui/tabs"
 import { IconButton } from "@opencode-ai/ui/icon-button"
-import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
+import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
 import type { DragEvent } from "@thisbeyond/solid-dnd"
 import { useCommand } from "@/context/command"
@@ -31,7 +31,9 @@ export const HeaderTabs: Component<{
   activeTab: Accessor<string | undefined>
   openedTabs: Accessor<string[]>
   homeviewOpen: Accessor<boolean>
+  homeviewUrl: Accessor<string>
   playgroundOpen: Accessor<boolean>
+  playgroundUrl: Accessor<string>
   playgroundRefresh: () => void
   contextOpen: Accessor<boolean>
   reviewTab: Accessor<boolean>
@@ -140,30 +142,42 @@ export const HeaderTabs: Component<{
                   </Tabs.Trigger>
                 </Show>
                 <Show when={props.homeviewOpen()}>
-                  <Tabs.Trigger value="homeview" hideCloseButton>
-                    <div class="flex items-center gap-1.5">
-                      <div>HomeView</div>
-                    </div>
-                  </Tabs.Trigger>
+                  <Tooltip
+                    placement="bottom"
+                    gutter={6}
+                    value={<div class="max-w-sm break-all text-12-regular">{props.homeviewUrl() || "(empty)"}</div>}
+                  >
+                    <Tabs.Trigger value="homeview" hideCloseButton>
+                      <div class="flex items-center gap-1.5">
+                        <div>HomeView</div>
+                      </div>
+                    </Tabs.Trigger>
+                  </Tooltip>
                 </Show>
                 <Show when={props.playgroundOpen()}>
-                  <Tabs.Trigger value="playground" hideCloseButton>
-                    <div class="flex items-center gap-1.5">
-                      <div>Playground</div>
-                      <TooltipKeybind title="Refresh" keybind="" class="flex items-center">
-                        <IconButton
-                          icon="reset"
-                          variant="ghost"
-                          class="h-4 w-4"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            props.playgroundRefresh()
-                          }}
-                          aria-label="Refresh playground"
-                        />
-                      </TooltipKeybind>
-                    </div>
-                  </Tabs.Trigger>
+                  <Tooltip
+                    placement="bottom"
+                    gutter={6}
+                    value={<div class="max-w-sm break-all text-12-regular">{props.playgroundUrl() || "(empty)"}</div>}
+                  >
+                    <Tabs.Trigger value="playground" hideCloseButton>
+                      <div class="flex items-center gap-1.5">
+                        <div>Playground</div>
+                        <TooltipKeybind title="Refresh" keybind="" class="flex items-center">
+                          <IconButton
+                            icon="reset"
+                            variant="ghost"
+                            class="h-4 w-4"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              props.playgroundRefresh()
+                            }}
+                            aria-label="Refresh playground"
+                          />
+                        </TooltipKeybind>
+                      </div>
+                    </Tabs.Trigger>
+                  </Tooltip>
                 </Show>
                 <SortableProvider ids={props.openedTabs()}>
                   <For each={props.openedTabs()}>
