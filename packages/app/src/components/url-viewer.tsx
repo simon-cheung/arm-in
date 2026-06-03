@@ -6,17 +6,23 @@ export interface UrlViewerMessage {
   suggestedName?: string
 }
 
-export function UrlViewer(props: { url: string; html?: string; onMessage?: (msg: UrlViewerMessage) => void }) {
+export function UrlViewer(props: {
+  url: string
+  code?: string
+  refreshKey?: number
+  onMessage?: (msg: UrlViewerMessage) => void
+}) {
   let iframeRef: HTMLIFrameElement | undefined
-  let lastHtml: string | undefined
+  let lastCode: string | undefined
   let lastUrl: string | undefined
+  let lastRefreshKey: number | undefined
 
   const sendHtml = () => {
     if (!iframeRef?.contentWindow) return
-    const html = props.html
-    if (html !== lastHtml) {
-      lastHtml = html
-      iframeRef.contentWindow.postMessage({ type: "playground.html", html }, "*")
+    const code = props.code
+    if (code !== lastCode) {
+      lastCode = code
+      iframeRef.contentWindow.postMessage({ type: "playground.code", code }, "*")
     }
   }
 
@@ -36,23 +42,25 @@ export function UrlViewer(props: { url: string; html?: string; onMessage?: (msg:
 
   createEffect(() => {
     const url = props.url
+    const refreshKey = props.refreshKey ?? 0
     if (iframeRef) {
-      if (url !== lastUrl) {
+      if (url !== lastUrl || refreshKey !== lastRefreshKey) {
         iframeRef.src = url
         lastUrl = url
+        lastRefreshKey = refreshKey
       } else {
         console.log("[UrlViewer] URL unchanged, not updating iframe src")
       }
-      lastHtml = undefined
-      if (props.html) {
+      lastCode = undefined
+      if (props.code) {
         sendHtml()
       }
     }
   })
 
   createEffect(() => {
-    const html = props.html
-    if (html) {
+    const code = props.code
+    if (code) {
       sendHtml()
     }
   })

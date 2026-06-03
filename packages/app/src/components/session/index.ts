@@ -1,4 +1,5 @@
 export { SessionHeader } from "./session-header"
+export { HeaderTabs } from "./header-tabs"
 export { SessionContextTab } from "./session-context-tab"
 export { SortableTab, FileVisual } from "./session-sortable-tab"
 export { SortableTerminalTab } from "./session-sortable-terminal-tab"

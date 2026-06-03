@@ -64,7 +64,7 @@ function createGlobalSync() {
   const sessionMeta = new Map<string, { limit: number }>()
 
   const [playgroundUrl, setPlaygroundUrl] = createSignal<string>("")
-  const [playgroundHtml, setPlaygroundHtml] = createSignal<string | undefined>(undefined)
+  const [playgroundCode, setPlaygroundCode] = createSignal<string | undefined>(undefined)
 
   const setPlaygroundUrlWithWorkspace = (url: string) => {
     let finalUrl = url
@@ -352,16 +352,17 @@ function createGlobalSync() {
 
     const evt = event as { type: string; properties?: unknown }
     if (evt.type === "playground.opened") {
-      const props = evt.properties as { url: string; html?: string }
+      const props = evt.properties as { url: string; code?: string; directory?: string }
       queueMicrotask(() => {
         let finalUrl = props.url
         if (props.url.startsWith("workspace://")) {
           const filePath = props.url.slice("workspace://".length)
-          const encoded = base64Encode(directory)
+          const dir = props.directory ?? directory
+          const encoded = base64Encode(dir)
           finalUrl = `${globalSDK.url}/__workdir__/${encoded}/${filePath}`
         }
         setPlaygroundUrl(finalUrl)
-        setPlaygroundHtml(props.html)
+        setPlaygroundCode(props.code)
       })
     }
   })
@@ -455,9 +456,9 @@ function createGlobalSync() {
     },
     playground: {
       url: playgroundUrl,
-      html: playgroundHtml,
+      code: playgroundCode,
       setUrl: setPlaygroundUrlWithWorkspace,
-      setHtml: setPlaygroundHtml,
+      setHtml: setPlaygroundCode,
     },
   }
 }

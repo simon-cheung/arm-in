@@ -9,7 +9,9 @@ import { usePlatform } from "./platform"
 import { Project } from "@opencode-ai/sdk/v2"
 import { Persist, persisted, removePersisted } from "@/utils/persist"
 import { decode64 } from "@/utils/base64"
+import { base64Encode } from "@opencode-ai/util/encode"
 import { same } from "@/utils/same"
+import { HOMEVIEW } from "@/env"
 import { createScrollPersistence, type SessionScroll } from "./layout-scroll"
 import { createPathHelpers } from "./file/path"
 
@@ -43,6 +45,8 @@ type SessionView = {
   reviewOpen?: string[]
   pendingMessage?: string
   pendingMessageAt?: number
+  playgroundUrl?: string
+  homeviewUrl?: string
 }
 
 type TabHandoff = {
@@ -94,9 +98,9 @@ export function pruneSessionKeys(input: {
 
 function nextSessionTabsForOpen(current: SessionTabs | undefined, tab: string): SessionTabs {
   const all = current?.all ?? []
-  if (tab === "review") return { all: all.filter((x) => x !== "review"), active: tab }
+  if (tab === "review" || tab === "playground" || tab === "homeview")
+    return { all: all.filter((x) => x !== tab), active: tab }
   if (tab === "context") return { all: [tab, ...all.filter((x) => x !== tab)], active: tab }
-  if (tab === "playground") return { all: [tab, ...all.filter((x) => x !== tab)], active: tab }
   if (!all.includes(tab)) return { all: [...all, tab], active: tab }
   return { all, active: tab }
 }
@@ -117,12 +121,14 @@ const normalizeSessionTab = (path: ReturnType<typeof createPathHelpers> | undefi
 
 const normalizeSessionTabList = (path: ReturnType<typeof createPathHelpers> | undefined, all: string[]) => {
   const seen = new Set<string>()
-  return all.flatMap((tab) => {
-    const value = normalizeSessionTab(path, tab)
-    if (seen.has(value)) return []
-    seen.add(value)
-    return [value]
-  })
+  return all
+    .filter((tab) => tab !== "review" && tab !== "playground")
+    .flatMap((tab) => {
+      const value = normalizeSessionTab(path, tab)
+      if (seen.has(value)) return []
+      seen.add(value)
+      return [value]
+    })
 }
 
 const normalizeStoredSessionTabs = (key: string, tabs: SessionTabs) => {
@@ -677,12 +683,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           setStore("fileTree", "width", width)
         },
       },
-      playgroundPanel: {
-        url: createMemo(() => store.playground?.url ?? ""),
-        setUrl(url: string) {
-          setStore("playground", "url", url)
-        },
-      },
       session: {
         width: createMemo(() => store.session?.width ?? DEFAULT_SESSION_WIDTH),
         resize(width: number) {
@@ -873,6 +873,49 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
               this.closePath(path)
             },
           },
+          playground: {
+            url: createMemo(() => s().playgroundUrl ?? ""),
+            setUrl(url: string, directory?: string) {
+              const session = key()
+              let finalUrl = url
+              if (url.startsWith("workspace://")) {
+                const filePath = url.slice("workspace://".length).replace(/^\/+/, "")
+                const encoded = base64Encode(directory ?? "")
+                finalUrl = `${globalSdk.url}/__workdir__/${encoded}/${filePath}`
+              }
+              const current = store.sessionView[session]
+              if (!current) {
+                setStore("sessionView", session, { scroll: {}, playgroundUrl: finalUrl })
+                return
+              }
+              setStore("sessionView", session, "playgroundUrl", finalUrl)
+            },
+            clear() {
+              const session = key()
+              const current = store.sessionView[session]
+              if (!current?.playgroundUrl) return
+              setStore("sessionView", session, "playgroundUrl", undefined)
+            },
+          },
+          homeview: {
+            url: createMemo(() => s().homeviewUrl ?? HOMEVIEW ?? ""),
+            hasRuntime: createMemo(() => !!s().homeviewUrl),
+            setUrl(url: string) {
+              const session = key()
+              const current = store.sessionView[session]
+              if (!current) {
+                setStore("sessionView", session, { scroll: {}, homeviewUrl: url })
+                return
+              }
+              setStore("sessionView", session, "homeviewUrl", url)
+            },
+            clear() {
+              const session = key()
+              const current = store.sessionView[session]
+              if (!current?.homeviewUrl) return
+              setStore("sessionView", session, "homeviewUrl", undefined)
+            },
+          },
         }
       },
       tabs(sessionKey: string | Accessor<string>) {
@@ -884,7 +927,9 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         return {
           tabs,
           active: createMemo(() => tabs().active),
-          all: createMemo(() => tabs().all.filter((tab) => tab !== "review")),
+          all: createMemo(() =>
+            tabs().all.filter((tab) => tab !== "review" && tab !== "playground" && tab !== "homeview"),
+          ),
           setActive(tab: string | undefined) {
             const session = key()
             const next = tab ? normalize(tab) : tab
@@ -896,7 +941,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           },
           setAll(all: string[]) {
             const session = key()
-            const next = normalizeAll(all).filter((tab) => tab !== "review")
+            const next = normalizeAll(all).filter((tab) => tab !== "review" && tab !== "playground")
             if (!store.sessionTabs[session]) {
               setStore("sessionTabs", session, { all: next, active: undefined })
             } else {

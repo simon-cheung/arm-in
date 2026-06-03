@@ -5,7 +5,8 @@ import { DialogRemoteWorkspace } from "@/components/dialog-remote-workspace"
 
 export interface SessionPlaygroundTabProps {
   url: () => string
-  html?: () => string | undefined
+  code?: () => string | undefined
+  refreshKey?: number
 }
 
 export function SessionPlaygroundTab(props: SessionPlaygroundTabProps) {
@@ -22,7 +23,7 @@ export function SessionPlaygroundTab(props: SessionPlaygroundTabProps) {
 
   return (
     <div class="h-full w-full">
-      <UrlViewer url={props.url()} html={props.html?.()} onMessage={handleMessage} />
+      <UrlViewer url={props.url()} code={props.code?.()} refreshKey={props.refreshKey} onMessage={handleMessage} />
     </div>
   )
 }

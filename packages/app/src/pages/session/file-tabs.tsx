@@ -9,7 +9,6 @@ import { createLineCommentController } from "@opencode-ai/ui/line-comment-annota
 import { sampledChecksum } from "@opencode-ai/util/encode"
 import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { IconButton } from "@opencode-ai/ui/icon-button"
-import { Tabs } from "@opencode-ai/ui/tabs"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { showToast } from "@opencode-ai/ui/toast"
 import { selectionFromLines, useFile, type FileSelection, type SelectedLineRange } from "@/context/file"
@@ -420,8 +419,8 @@ export function FileTabContent(props: { tab: string }) {
     scrollSync.queueRestore()
   })
 
-const MARKDOWN_EXTS = [".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdtxt"]
-const HTML_EXTS = [".html", ".htm"]
+  const MARKDOWN_EXTS = [".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdtxt"]
+  const HTML_EXTS = [".html", ".htm"]
 
   function isRichTextFile(name: string): boolean {
     const match = name.match(/\.[^.]+$/)
@@ -444,9 +443,9 @@ const HTML_EXTS = [".html", ".htm"]
     return result
   }
 
-  const checkMode = ()=>{
-    if(isRichTextFile( path() ?? "")) return "rich-text"
-    if(isHtmlFile(path() ?? "")) return "html-preview"
+  const checkMode = () => {
+    if (isRichTextFile(path() ?? "")) return "rich-text"
+    if (isHtmlFile(path() ?? "")) return "html-preview"
     return "text"
   }
 
@@ -510,7 +509,7 @@ const HTML_EXTS = [".html", ".htm"]
   )
 
   return (
-    <Tabs.Content value={props.tab} class="mt-3 relative h-full">
+    <div class="mt-3 relative h-full">
       <ScrollView class="h-full" viewportRef={scrollSync.setViewport} onScroll={scrollSync.handleScroll as any}>
         <Switch>
           <Match when={state()?.loaded}>{renderFile(contents())}</Match>
@@ -520,6 +519,6 @@ const HTML_EXTS = [".html", ".htm"]
           <Match when={state()?.error}>{(err) => <div class="px-6 py-4 text-text-weak">{err()}</div>}</Match>
         </Switch>
       </ScrollView>
-    </Tabs.Content>
+    </div>
   )
 }

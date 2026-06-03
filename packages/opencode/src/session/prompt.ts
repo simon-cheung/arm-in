@@ -376,7 +376,12 @@ NOTE: At any point in time through this workflow you should feel free to ask the
           abort: options.abortSignal!,
           messageID: input.processor.message.id,
           callID: options.toolCallId,
-          extra: { model: input.model, bypassAgentCheck: input.bypassAgentCheck, promptOps },
+          extra: {
+            model: input.model,
+            bypassAgentCheck: input.bypassAgentCheck,
+            promptOps,
+            directory: input.session.directory,
+          },
           agent: input.agent.name,
           messages: input.messages,
           metadata: (val) =>

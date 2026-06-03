@@ -8,7 +8,8 @@ export const PlaygroundOpened = BusEvent.define(
   "playground.opened",
   z.object({
     url: z.string(),
-    html: z.string().optional(),
+    code: z.string().optional(),
+    directory: z.string().optional(),
   }),
 )
 
@@ -35,12 +36,12 @@ export const PlaygroundTool = Tool.define(
           .describe(
             'The URL to open in the playground. Supports:\n- http://, https://, blob:// for web URLs\n- workspace://{path} for files in workspace (e.g., "workspace://html/index.html")',
           ),
-        html: z.string().optional().describe("JavaScript to execute after the page loads"),
+        code: z.string().optional().describe("JavaScript to execute after the page loads"),
       }),
-      execute: (params: { url: string; html?: string }, ctx: Tool.Context) =>
+      execute: (params: { url: string; code?: string }, ctx: Tool.Context) =>
         Effect.gen(function* () {
           yield* ctx.metadata({ title: params.url })
-          yield* bus.publish(PlaygroundOpened, { url: params.url, html: params.html })
+          yield* bus.publish(PlaygroundOpened, { url: params.url, code: params.code, directory: ctx.extra?.directory })
           return { title: params.url, output: `Opened ${params.url}`, metadata: {} }
         }).pipe(Effect.orDie),
     }

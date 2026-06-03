@@ -2,7 +2,6 @@ import { batch, createMemo, onCleanup, onMount, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { same } from "@/utils/same"
-import { HOMEVIEW } from "@/env"
 
 const emptyTabs: string[] = []
 
@@ -17,7 +16,9 @@ type TabsInput = {
   normalizeTab: (tab: string) => string
   review?: Accessor<boolean>
   hasReview?: Accessor<boolean>
+  homeview?: Accessor<boolean>
   playground?: Accessor<boolean>
+  playgroundUrl?: Accessor<string>
 }
 
 export const getSessionKey = (dir: string | undefined, id: string | undefined) => `${dir ?? ""}${id ? `/${id}` : ""}`
@@ -25,10 +26,16 @@ export const getSessionKey = (dir: string | undefined, id: string | undefined) =
 export const createSessionTabs = (input: TabsInput) => {
   const review = input.review ?? (() => false)
   const hasReview = input.hasReview ?? (() => false)
+  const homeview = input.homeview ?? (() => false)
   const playground = input.playground ?? (() => false)
   const contextOpen = createMemo(() => input.tabs().active() === "context" || input.tabs().all().includes("context"))
-  const playgroundOpen = createMemo(() =>
-    HOMEVIEW ? true : input.tabs().active() === "playground" || input.tabs().all().includes("playground"),
+  const homeviewOpen = createMemo(() => homeview())
+  const playgroundOpen = createMemo(
+    () =>
+      playground() &&
+      (!!input.playgroundUrl?.() ||
+        input.tabs().active() === "playground" ||
+        input.tabs().all().includes("playground")),
   )
   const openedTabs = createMemo(
     () => {
@@ -37,7 +44,7 @@ export const createSessionTabs = (input: TabsInput) => {
         .tabs()
         .all()
         .flatMap((tab) => {
-          if (tab === "context" || tab === "review" || tab === "playground") return []
+          if (tab === "context" || tab === "review" || tab === "playground" || tab === "homeview") return []
           const value = input.pathFromTab(tab) ? input.normalizeTab(tab) : tab
           if (seen.has(value)) return []
           seen.add(value)
@@ -50,6 +57,7 @@ export const createSessionTabs = (input: TabsInput) => {
   const activeTab = createMemo(() => {
     const active = input.tabs().active()
     if (active === "context") return active
+    if (active === "homeview" && homeview()) return active
     if (active === "review" && review()) return active
     if (active === "playground" && playground()) return active
     if (active && input.pathFromTab(active)) return input.normalizeTab(active)
@@ -57,6 +65,7 @@ export const createSessionTabs = (input: TabsInput) => {
     const first = openedTabs()[0]
     if (first) return first
     if (contextOpen()) return "context"
+    if (homeviewOpen()) return "homeview"
     if (playgroundOpen()) return "playground"
     if (review() && hasReview()) return "review"
     return "empty"
@@ -75,6 +84,7 @@ export const createSessionTabs = (input: TabsInput) => {
 
   return {
     contextOpen,
+    homeviewOpen,
     playgroundOpen,
     openedTabs,
     activeTab,

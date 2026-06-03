@@ -10,6 +10,7 @@ import {
   createMemo,
   createEffect,
   createComputed,
+  createSignal,
   on,
   onMount,
   untrack,
@@ -29,7 +30,7 @@ import { Button } from "@opencode-ai/ui/button"
 import { showToast } from "@opencode-ai/ui/toast"
 import { checksum } from "@opencode-ai/util/encode"
 import { useSearchParams } from "@solidjs/router"
-import { NewSessionView, SessionHeader } from "@/components/session"
+import { NewSessionView, SessionHeader, HeaderTabs, SessionContextTab } from "@/components/session"
 import { useComments } from "@/context/comments"
 import { getSessionPrefetch, SESSION_PREFETCH_TTL } from "@/context/global-sync/session-prefetch"
 import { useGlobalSync } from "@/context/global-sync"
@@ -52,6 +53,7 @@ import {
 import { MessageTimeline } from "@/pages/session/message-timeline"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
 import { SessionPlaygroundTab } from "@/pages/session/playground-tab"
+import { UrlViewer } from "@/components/url-viewer"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { syncSessionModel } from "@/pages/session/session-model-helpers"
 import { SessionSidePanel } from "@/pages/session/session-side-panel"
@@ -64,6 +66,8 @@ import { Persist, persisted } from "@/utils/persist"
 import { extractPromptFromParts } from "@/utils/prompt"
 import { same } from "@/utils/same"
 import { formatServerError } from "@/utils/server-errors"
+import { base64Encode } from "@opencode-ai/util/encode"
+import { useGlobalSDK } from "@/context/global-sdk"
 import { HOMEVIEW } from "@/env"
 
 const emptyUserMessages: UserMessage[] = []
@@ -439,16 +443,21 @@ export default function Page() {
   // const canReview = createMemo(() => !!sync.project)
   const canReview = createMemo(() => false)
   const reviewTab = createMemo(() => isDesktop())
-  const canPlayground = createMemo(() => isDesktop() || !!HOMEVIEW)
+  const canPlayground = createMemo(() => isDesktop())
+  const canHomeview = createMemo(() => !!HOMEVIEW || view().homeview.hasRuntime())
   const tabState = createSessionTabs({
     tabs,
     pathFromTab: file.pathFromTab,
     normalizeTab,
     review: reviewTab,
     hasReview: canReview,
+    homeview: canHomeview,
     playground: canPlayground,
+    playgroundUrl: view().playground.url,
   })
   const contextOpen = tabState.contextOpen
+  const homeviewOpen = tabState.homeviewOpen
+  const playgroundOpen = tabState.playgroundOpen
   const openedTabs = tabState.openedTabs
   const activeTab = tabState.activeTab
   const activeFileTab = tabState.activeFileTab
@@ -1259,23 +1268,69 @@ export default function Page() {
     </div>
   )
 
-  const playgroundPanel = () => (
-    <div class="h-full w-full overflow-hidden">
-      <SessionPlaygroundTab url={globalSync.playground.url} html={globalSync.playground.html} />
-    </div>
+  const playgroundPanel = () => {
+    const urlAccessor = view().playground.url
+    const url = () => urlAccessor()
+    return (
+      <div class="relative h-full w-full overflow-hidden">
+        <div class="flex items-center gap-2 px-2 py-1 text-11-regular text-text-weaker border-b border-border-weaker-base truncate">
+          <span class="shrink-0">URL:</span>
+          <span class="truncate">{url() || "(empty)"}</span>
+        </div>
+        <div class="absolute inset-0 top-7 bottom-0">
+          <SessionPlaygroundTab
+            url={urlAccessor}
+            code={globalSync.playground.code}
+            refreshKey={playgroundReloadKey()}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  const homeviewPanel = () => {
+    const url = view().homeview.url()
+    if (!url) return null
+    return (
+      <div class="h-full w-full overflow-hidden">
+        <UrlViewer url={url} />
+      </div>
+    )
+  }
+
+  const contextPanel = () => <SessionContextTab />
+
+  const [playgroundReloadKey, setPlaygroundReloadKey] = createSignal(0)
+
+  const probePlayground = async () => {
+    const dir = params.dir
+    if (!dir) return
+    try {
+      const res = await sdk.client.file.read({ path: "_playground/index.html" })
+      if (res?.data) {
+        view().playground.setUrl("workspace://_playground/index.html", dir)
+        tabs().open("playground")
+      } else {
+        view().playground.clear()
+      }
+    } catch {
+      view().playground.clear()
+    }
+  }
+
+  const playgroundRefresh = () => {
+    setPlaygroundReloadKey((k) => k + 1)
+  }
+
+  createEffect(
+    on(
+      () => params.dir,
+      () => {
+        void probePlayground()
+      },
+      { defer: true },
+    ),
   )
-
-  createEffect(() => {
-    if (HOMEVIEW && !globalSync.playground.url()) {
-      globalSync.playground.setUrl(HOMEVIEW)
-    }
-    const url = globalSync.playground.url()
-    const all = tabs().all()
-
-    if (url && !all.includes("playground")) {
-      tabs().open("playground")
-    }
-  })
 
   createEffect(
     on(
@@ -1909,6 +1964,25 @@ export default function Page() {
   return (
     <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
       <SessionHeader />
+      <HeaderTabs
+        centerMount={createMemo(() => document.getElementById("opencode-titlebar-center"))}
+        tabs={tabs}
+        activeTab={activeTab}
+        openedTabs={openedTabs}
+        homeviewOpen={homeviewOpen}
+        playgroundOpen={playgroundOpen}
+        playgroundRefresh={playgroundRefresh}
+        contextOpen={contextOpen}
+        reviewTab={reviewTab}
+        canReview={canReview}
+        hasReview={hasReview}
+        reviewCount={reviewCount}
+        onOpenFile={(path: string) => {
+          const tab = file.tab(path)
+          tabs().open(tab)
+          file.load(path)
+        }}
+      />
       <div class="flex-1 min-h-0 flex flex-col md:flex-row">
         <Show when={!isDesktop() && !!params.id}>
           <Tabs value={store.mobileTab} class="h-auto">
@@ -2072,6 +2146,8 @@ export default function Page() {
           hasReview={hasReview}
           reviewCount={reviewCount}
           reviewPanel={reviewPanel}
+          contextPanel={contextPanel}
+          homeviewPanel={homeviewPanel}
           activeDiff={tree.activeDiff}
           focusReviewDiff={focusReviewDiff}
           reviewSnap={ui.reviewSnap}
