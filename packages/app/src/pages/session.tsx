@@ -54,6 +54,7 @@ import { MessageTimeline } from "@/pages/session/message-timeline"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
 import { SessionPlaygroundTab } from "@/pages/session/playground-tab"
 import { UrlViewer } from "@/components/url-viewer"
+import { decode64 } from "@/utils/base64"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { syncSessionModel } from "@/pages/session/session-model-helpers"
 import { SessionSidePanel } from "@/pages/session/session-side-panel"
@@ -1310,6 +1311,18 @@ export default function Page() {
   const playgroundRefresh = () => {
     setPlaygroundReloadKey((k) => k + 1)
   }
+
+  createEffect(
+    on(
+      () => globalSync.playground.url(),
+      (url) => {
+        if (!url) return
+        const dir = decode64(params.dir) ?? ""
+        view().playground.setUrl(url, dir)
+        tabs().open("playground")
+      },
+    ),
+  )
 
   createEffect(
     on(

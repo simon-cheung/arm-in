@@ -22,7 +22,7 @@ export function UrlViewer(props: {
     const code = props.code
     if (code !== lastCode) {
       lastCode = code
-      iframeRef.contentWindow.postMessage({ type: "playground.code", code }, "*")
+      iframeRef.contentWindow.postMessage({ type: "ARMIN_EXECUTE", code }, "*")
     }
   }
 

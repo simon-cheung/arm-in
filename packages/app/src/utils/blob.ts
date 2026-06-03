@@ -2,11 +2,11 @@ export function createBlobUrl(html: string): string {
   const wrapped = `<!DOCTYPE html><html><head><meta charset="utf-8"><script>
 window.addEventListener('message', function(e) {
   if (e.data) {
-    if (e.data.type === 'playground.code' && e.data.code) {
+    if (e.data.type === 'executeJs' && e.data.code) {
       try {
         eval(e.data.code);
       } catch (err) {
-        console.error('playground.code error:', err);
+        console.error('executeJs error:', err);
       }
     } else if (e.data.action === 'download') {
       window.parent.postMessage(e.data, '*');
@@ -22,11 +22,11 @@ export function createBlobUrlWithScript(html: string, script: string): string {
   const wrapped = `<!DOCTYPE html><html><head><meta charset="utf-8"><script>
 window.addEventListener('message', function(e) {
   if (e.data) {
-    if (e.data.type === 'playground.code' && e.data.code) {
+    if (e.data.type === 'executeJs' && e.data.code) {
       try {
         eval(e.data.code);
       } catch (err) {
-        console.error('playground.code error:', err);
+        console.error('executeJs error:', err);
       }
     } else if (e.data.action === 'download') {
       window.parent.postMessage(e.data, '*');
