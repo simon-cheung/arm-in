@@ -68,5 +68,8 @@ export default defineConfig({
         },
       },
     },
+    define: {
+      "import.meta.env.VITE_OPENCODE_HOMEVIEW": JSON.stringify(process.env.OPENCODE_HOME_VIEW ?? ""),
+    },
   },
 })

@@ -103,8 +103,8 @@ function getConfig() {
       return {
         ...base,
         appId: "com.ggvale.armin.desktop",
-        productName: "ArmIn",
-        protocols: { name: "ArmIn", schemes: ["opencode"] },
+        productName: "ArmIn Desktop",
+        protocols: { name: "ArmIn Desktop", schemes: ["opencode"] },
         publish: { provider: "github", owner: "anomalyco", repo: "opencode", channel: "latest" },
         rpm: { packageName: "armin" },
       }
