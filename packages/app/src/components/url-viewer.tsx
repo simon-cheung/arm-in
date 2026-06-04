@@ -20,6 +20,7 @@ export function UrlViewer(props: {
   const sendHtml = () => {
     if (!iframeRef?.contentWindow) return
     const code = props.code
+    console.log("[UrlViewer] update code: ", code)
     if (code !== lastCode) {
       lastCode = code
       iframeRef.contentWindow.postMessage({ type: "ARMIN_EXECUTE", code }, "*")
