@@ -35,6 +35,8 @@ export function UrlViewer(props: {
       if (e.data?.action === "download") {
         console.log("[UrlViewer] Download action detected, calling onMessage")
         props.onMessage?.({ action: "download", url: e.data.url, suggestedName: e.data.suggestedName })
+      } else if (e.data?.action === 'ARMIN_UPDATE_CODE'){
+        
       }
     }
     window.addEventListener("message", handleMessage)
