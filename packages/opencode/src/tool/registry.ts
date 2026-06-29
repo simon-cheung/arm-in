@@ -1,7 +1,6 @@
 import { PlanExitTool } from "./plan"
 import { Session } from "../session"
 import { QuestionTool } from "./question"
-import { PlaygroundTool } from "./playground"
 import { BashTool } from "./bash"
 import { EditTool } from "./edit"
 import { GlobTool } from "./glob"
@@ -122,7 +121,6 @@ export namespace ToolRegistry {
       const patchtool = yield* ApplyPatchTool
       const skilltool = yield* SkillTool
       const agent = yield* Agent.Service
-      const playgroundtool = yield* PlaygroundTool
 
       const state = yield* InstanceState.make<State>(
         Effect.fn("ToolRegistry.state")(function* (ctx) {
@@ -200,7 +198,6 @@ export namespace ToolRegistry {
             question: Tool.init(question),
             lsp: Tool.init(lsptool),
             plan: Tool.init(plan),
-            playground: Tool.init(playgroundtool),
           })
 
           return {

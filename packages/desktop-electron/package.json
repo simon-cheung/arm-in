@@ -17,9 +17,9 @@
     "build": "bun --env-file=.env electron-vite build",
     "preview": "electron-vite preview",
     "package": "bun --env-file=.env electron-builder --config electron-builder.config.ts",
-    "package:mac": "electron-builder --mac --config electron-builder.config.ts",
-    "package:win": "electron-builder --win --config electron-builder.config.ts",
-    "package:linux": "electron-builder --linux --config electron-builder.config.ts",
+    "package:mac": "bun --env-file=.env electron-builder --mac --config electron-builder.config.ts",
+    "package:win": "bun --env-file=.env  electron-builder --win --config electron-builder.config.ts",
+    "package:linux": "bun --env-file=.env  electron-builder --linux --config electron-builder.config.ts",
     "native:build": "bun install --cwd native"
   },
   "main": "./out/main/index.js",
