@@ -64,7 +64,7 @@ export namespace Command {
 
   export const Default = {
     INIT: "init",
-    PLAYGROUND: "playground",
+    // PLAYGROUND: "playground",
     REVIEW: "review",
   } as const
 
@@ -95,15 +95,15 @@ export namespace Command {
           },
           hints: hints(PROMPT_INITIALIZE),
         }
-        commands[Default.PLAYGROUND] = {
-          name: Default.PLAYGROUND,
-          description: "open URL or workspace file in playground",
-          source: "command",
-          get template() {
-            return PROMPT_PLAYGROUND
-          },
-          hints: hints(PROMPT_PLAYGROUND),
-        }
+        // commands[Default.PLAYGROUND] = {
+        //   name: Default.PLAYGROUND,
+        //   description: "open URL or workspace file in playground",
+        //   source: "command",
+        //   get template() {
+        //     return PROMPT_PLAYGROUND
+        //   },
+        //   hints: hints(PROMPT_PLAYGROUND),
+        // }
         commands[Default.REVIEW] = {
           name: Default.REVIEW,
           description: "review changes [commit|branch|pr], defaults to uncommitted",
