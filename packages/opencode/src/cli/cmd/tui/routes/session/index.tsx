@@ -255,7 +255,7 @@ export function Session() {
     const title = Locale.truncate(session()?.title ?? "", 50)
     const pad = (text: string) => text.padEnd(10, " ")
     const weak = (text: string) => UI.Style.TEXT_DIM + pad(text) + UI.Style.TEXT_NORMAL
-    const logo = UI.logo("  ").split(/\r?\n/)
+    const logo = UI.logoLst();
     return exit.message.set(
       [
         `${logo[0] ?? ""}`,
