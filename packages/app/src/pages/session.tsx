@@ -1297,10 +1297,11 @@ export default function Page() {
     if (!rawDir) return
     const dir = decode64(rawDir) ?? ""
     if (!dir) return
+    const fnow = Date.now();
     try {
       const res = await sdk.client.file.read({ path: "_playground/index.html" })
       if (res?.data) {
-        view().playground.setUrl("workspace://_playground/index.html", dir)
+        view().playground.setUrl(`workspace://_playground/index.html?_v=${fnow}&&lessonBase=../`, dir)
         tabs().open("playground")
       } else {
         view().playground.clear()
