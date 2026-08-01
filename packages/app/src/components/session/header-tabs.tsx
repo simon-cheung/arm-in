@@ -41,6 +41,7 @@ export const HeaderTabs: Component<{
   hasReview: Accessor<boolean>
   reviewCount: Accessor<number>
   onOpenFile: (tab: string) => void
+  onOpenPlayground3D: () => void
 }> = (props) => {
   const language = useLanguage()
   const command = useCommand()
@@ -207,6 +208,16 @@ export const HeaderTabs: Component<{
                         })
                       }}
                       aria-label="Open URL"
+                    />
+                  </TooltipKeybind>
+                  <TooltipKeybind title="3D Playground" keybind="" class="flex items-center">
+                    <IconButton
+                      icon="cube"
+                      variant="ghost"
+                      iconSize="large"
+                      class="!rounded-md"
+                      onClick={props.onOpenPlayground3D}
+                      aria-label="3D Playground"
                     />
                   </TooltipKeybind>
                   <TooltipKeybind

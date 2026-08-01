@@ -1297,7 +1297,7 @@ export default function Page() {
     if (!rawDir) return
     const dir = decode64(rawDir) ?? ""
     if (!dir) return
-    const fnow = Date.now();
+    const fnow = Date.now()
     try {
       const res = await sdk.client.file.read({ path: "_playground/index.html" })
       if (res?.data) {
@@ -1313,6 +1313,23 @@ export default function Page() {
 
   const playgroundRefresh = () => {
     setPlaygroundReloadKey((k) => k + 1)
+  }
+
+  const openPlayground3D = async () => {
+    if (!isProjectReady()) return
+    const dir = decode64(params.dir) ?? ""
+    if (!dir) return
+    const res = await sdk.client.file.read({ path: "_playground/index.html" }).catch(() => undefined)
+    if (!res?.data) {
+      showToast({
+        variant: "default",
+        title: "3D Playground",
+        description: "No _playground/index.html found in workspace.",
+      })
+      return
+    }
+    view().playground.setUrl(`workspace://_playground/index.html?_v=${Date.now()}&&lessonBase=../`, dir)
+    tabs().open("playground")
   }
 
   const currentProjectDir = createMemo(() => sync.data.path.directory)
@@ -2007,6 +2024,7 @@ export default function Page() {
           tabs().open(tab)
           file.load(path)
         }}
+        onOpenPlayground3D={() => void openPlayground3D()}
       />
       <div class="flex-1 min-h-0 flex flex-col md:flex-row">
         <Show when={!isDesktop() && !!params.id}>
