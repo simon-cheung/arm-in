@@ -55,6 +55,12 @@ type TabHandoff = {
   at: number
 }
 
+type ViewHandoff = {
+  dir: string
+  view: SessionView
+  at: number
+}
+
 export type LocalProject = Partial<Project> & { worktree: string; expanded: boolean }
 
 export type ReviewDiffStyle = "unified" | "split"
@@ -269,6 +275,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         sessionView: {} as Record<string, SessionView>,
         handoff: {
           tabs: undefined as TabHandoff | undefined,
+          view: undefined as ViewHandoff | undefined,
         },
       }),
     )
@@ -586,6 +593,14 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           if (!store.handoff?.tabs) return
           setStore("handoff", "tabs", undefined)
         },
+        view: createMemo(() => store.handoff?.view),
+        setView(dir: string, view: SessionView) {
+          setStore("handoff", "view", { dir, view, at: Date.now() })
+        },
+        clearView() {
+          if (!store.handoff?.view) return
+          setStore("handoff", "view", undefined)
+        },
       },
       projects: {
         list,
@@ -779,6 +794,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         }
 
         return {
+          peek: createMemo(() => store.sessionView[key()]),
           scroll(tab: string) {
             return scroll.scroll(key(), tab)
           },

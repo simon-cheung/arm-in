@@ -403,6 +403,34 @@ export default function Page() {
     ),
   )
 
+  createEffect(
+    on(
+      () => params.id,
+      (id, prev) => {
+        if (!id) return
+        if (prev) return
+
+        const pending = layout.handoff.view()
+        if (!pending) return
+        if (Date.now() - pending.at > 60_000) {
+          layout.handoff.clearView()
+          return
+        }
+
+        if (pending.dir !== (params.dir ?? "")) return
+        layout.handoff.clearView()
+
+        if (!view().playground.url() && pending.view.playgroundUrl) {
+          batch(() => {
+            view().playground.setUrl(pending.view.playgroundUrl as string)
+            tabs().open("playground")
+          })
+        }
+      },
+      { defer: true },
+    ),
+  )
+
   const isDesktop = createMediaQuery("(min-width: 768px)")
   const size = createSizing()
   const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
@@ -1370,6 +1398,18 @@ export default function Page() {
     on(isProjectReady, (ready) => {
       if (ready) runProbe()
     }),
+  )
+
+  createEffect(
+    on(
+      () => params.id,
+      (id, prev) => {
+        if (!id) return
+        if (prev) return
+        runProbe()
+      },
+      { defer: true },
+    ),
   )
 
   createEffect(

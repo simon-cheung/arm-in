@@ -377,8 +377,18 @@ export function createPromptSubmit(input: PromptSubmitInput) {
         session = created
         if (shouldAutoAccept) permission.enableAutoAccept(session.id, sessionDirectory)
         local.session.promote(sessionDirectory, session.id)
-        layout.handoff.setTabs(base64Encode(sessionDirectory), session.id)
-        navigate(`/${base64Encode(sessionDirectory)}/session/${session.id}`)
+
+        const workspaceKey = base64Encode(sessionDirectory)
+        const workspaceView = layout.view(workspaceKey).peek()
+        if (workspaceView?.playgroundUrl) {
+          layout.handoff.setView(workspaceKey, {
+            scroll: workspaceView.scroll ?? {},
+            playgroundUrl: workspaceView.playgroundUrl,
+          })
+        }
+
+        layout.handoff.setTabs(workspaceKey, session.id)
+        navigate(`/${workspaceKey}/session/${session.id}`)
       }
     }
     if (!session) {
