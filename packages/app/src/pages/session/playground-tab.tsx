@@ -144,8 +144,7 @@ export function SessionPlaygroundTab(props: SessionPlaygroundTabProps) {
       const result = await response.json().catch(() => ({}))
       if (!response.ok || result.error) throw new Error(result.error ?? `HTTP ${response.status}`)
 
-      // toast.update({ title: "重新加载项目…" })
-      console.log("Triggering reload for directory:", directory)
+      toast.update({ title: "重新加载项目…" })
       reload.trigger({ directory, source: "upsert" })
 
       toast.finish({
