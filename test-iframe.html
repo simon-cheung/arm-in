@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        padding: 20px;
+        background: #1a1a1a;
+        color: #fff;
+      }
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 18px;
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 6px;
+        color: #aaa;
+      }
+      input,
+      textarea {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 12px;
+        border: 1px solid #333;
+        border-radius: 6px;
+        background: #2a2a2a;
+        color: #fff;
+        box-sizing: border-box;
+        font-family: inherit;
+        font-size: 13px;
+      }
+      textarea {
+        min-height: 160px;
+        resize: vertical;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #0066cc;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      button:hover {
+        background: #0052a3;
+      }
+      button:disabled {
+        background: #444;
+        cursor: not-allowed;
+      }
+      .status {
+        margin-top: 12px;
+        font-size: 12px;
+        min-height: 18px;
+      }
+      .status.ok {
+        color: #4ade80;
+      }
+      .status.err {
+        color: #f87171;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Upsert File to Workspace</h1>
+
+      <label for="fileNameInput">File name</label>
+      <input type="text" id="fileNameInput" placeholder="hello.txt, AGENTS.md, or foo.zip" value="hello.txt" />
+
+      <label for="contentInput">Content (file content, or zip URL if filename ends with .zip)</label>
+      <textarea id="contentInput" placeholder="// file content here; for .zip, paste a URL">hello from iframe</textarea>
+
+      <button id="saveBtn" onclick="sendUpsertMessage()">Save to Workspace</button>
+      <div id="status" class="status"></div>
+    </div>
+    <script>
+      const fileNameInput = document.getElementById("fileNameInput")
+      const contentInput = document.getElementById("contentInput")
+      const saveBtn = document.getElementById("saveBtn")
+      const statusEl = document.getElementById("status")
+
+      function setStatus(text, kind) {
+        statusEl.textContent = text || ""
+        statusEl.className = "status" + (kind ? " " + kind : "")
+      }
+
+      async function sendUpsertMessage() {
+        const fileName = fileNameInput.value.trim()
+        const content = contentInput.value
+        if (!fileName) {
+          setStatus("File name is required", "err")
+          return
+        }
+        if (fileName.toLowerCase().endsWith(".zip") && content && !/^https?:\/\//.test(content)) {
+          setStatus("For .zip, content must be a URL starting with http:// or https://", "err")
+          return
+        }
+        saveBtn.disabled = true
+        const kind = fileName.toLowerCase().endsWith(".zip") ? "extracting" : "saving"
+        setStatus(`Sending ${fileName} to parent (parent will ${kind} then show a done overlay)…`, "")
+        try {
+          const result = await new Promise((resolve, reject) => {
+            const handler = (e) => {
+              if (e.data?.action !== "ARMIN_UPSERT_DONE") return
+              if (e.data.fileName !== fileName) return
+              window.removeEventListener("message", handler)
+              clearTimeout(timer)
+              if (e.data.ok) resolve(e.data)
+              else reject(new Error(e.data.error || "upsert failed"))
+            }
+            window.addEventListener("message", handler)
+            const timer = setTimeout(() => {
+              window.removeEventListener("message", handler)
+              reject(new Error("timeout waiting for parent ack"))
+            }, 60000)
+            window.parent.postMessage({ action: "ARMIN_UPSERT_FILE", content, fileName }, "*")
+          })
+          setStatus(`Saved ${fileName}`, "ok")
+        } catch (err) {
+          setStatus(`Failed: ${err.message}`, "err")
+        } finally {
+        }
+      }
+    </script>
+  </body>
+</html>

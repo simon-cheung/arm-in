@@ -57,15 +57,15 @@ export async function downloadAndExtract(
 
   await Filesystem.write(tempZipPath, buffer)
 
-  const extractedName = filename.endsWith(".zip") ? filename.slice(0, -4) : filename
-  const extractedDir = path.join(targetDir, extractedName)
-
   await fs.mkdir(targetDir, { recursive: true })
 
-  // Get existing contents before extraction for comparison
+  // Clear contents of targetDir without removing the directory itself
   let existingContents: string[] = []
   try {
     existingContents = await fs.readdir(targetDir)
+    await Promise.all(
+      existingContents.map((name) => fs.rm(path.join(targetDir, name), { recursive: true, force: true })),
+    )
   } catch {
     // ignore
   }
@@ -76,40 +76,23 @@ export async function downloadAndExtract(
 
   await fs.rm(tempZipPath, { force: true })
 
-  // Check if extractedDir exists
-  try {
-    const stat = await fs.stat(extractedDir)
-    if (stat.isDirectory()) {
-      return extractedDir
-    }
-  } catch {
-    // ignore
-  }
-
-  // extractedDir doesn't exist, look for newly created items
+  // Find the extraction root:
+  // - if exactly one new directory was created, it's a nested-zip layout (zip contains a top-level folder)
+  // - otherwise extraction was flattened into targetDir
   const contents = await fs.readdir(targetDir)
   const newItems = contents.filter((name) => !existingContents.includes(name))
 
-  // Check if any new directory was created
-  for (const item of newItems) {
-    const itemPath = path.join(targetDir, item)
+  if (newItems.length === 1) {
+    const newPath = path.join(targetDir, newItems[0])
     try {
-      const stat = await fs.stat(itemPath)
-      if (stat.isDirectory()) {
-        return itemPath
-      }
+      const stat = await fs.stat(newPath)
+      if (stat.isDirectory()) return newPath
     } catch {
-      // not a directory
+      // fall through
     }
   }
 
-  // Maybe extracted directly to targetDir without subfolder
-  if (newItems.length === 1) {
-    const newPath = path.join(targetDir, newItems[0])
-    return newPath
-  }
-
-  throw new Error(`Extraction failed: ${extractedDir} does not exist`)
+  return targetDir
 }
 
 function getFilenameFromUrl(url: string): string {

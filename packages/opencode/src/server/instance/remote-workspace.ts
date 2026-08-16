@@ -36,7 +36,6 @@ export const RemoteWorkspaceRoutes = lazy(() =>
 
       try {
         const extractedPath = await downloadAndExtract(url, targetDir, (stage: DownloadStage, percent?: number) => {
-          console.log(`[RemoteWorkspace] ${stage}: ${percent ?? 100}%`)
         })
 
         return c.json({ path: extractedPath })

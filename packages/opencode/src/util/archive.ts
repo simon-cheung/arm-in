@@ -1,16 +1,24 @@
 import path from "path"
-import { Process } from "./process"
+import fs from "fs/promises"
+import AdmZip from "adm-zip"
 
 export namespace Archive {
   export async function extractZip(zipPath: string, destDir: string) {
-    if (process.platform === "win32") {
-      const winZipPath = path.resolve(zipPath)
-      const winDestDir = path.resolve(destDir)
-      const cmd = `$global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -Path '${winZipPath}' -DestinationPath '${winDestDir}' -Force`
-      await Process.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", cmd], { timeout: 120_000 })
-      return
-    }
+    await fs.mkdir(destDir, { recursive: true })
 
-    await Process.run(["unzip", "-o", "-q", zipPath, "-d", destDir])
+    const zip = new AdmZip(zipPath)
+    for (const entry of zip.getEntries()) {
+      const filename = entry.entryName.replace(/\\/g, "/").replace(/\/+$/, "")
+      if (!filename) continue
+      if (entry.isDirectory) continue
+      const target = path.join(destDir, filename)
+      await fs.mkdir(path.dirname(target), { recursive: true })
+      try {
+        await fs.rm(target, { force: true })
+      } catch {
+        // ignore
+      }
+      await fs.writeFile(target, entry.getData())
+    }
   }
 }

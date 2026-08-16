@@ -1,4 +1,4 @@
-import { createEffect, onMount } from "solid-js"
+import { createEffect, onCleanup } from "solid-js"
 
 export interface UrlViewerMessage {
   action: "download"
@@ -6,11 +6,20 @@ export interface UrlViewerMessage {
   suggestedName?: string
 }
 
+export interface UrlViewerUpsertMessage {
+  action: "upsert"
+  content: string
+  fileName: string
+}
+
+export type UrlViewerAnyMessage = UrlViewerMessage | UrlViewerUpsertMessage
+
 export function UrlViewer(props: {
   url: string
   code?: string
   refreshKey?: number
-  onMessage?: (msg: UrlViewerMessage) => void
+  onMessage?: (msg: UrlViewerAnyMessage) => void
+  onIframeRef?: (el: HTMLIFrameElement | undefined) => void
 }) {
   let iframeRef: HTMLIFrameElement | undefined
   let lastCode: string | undefined
@@ -20,27 +29,26 @@ export function UrlViewer(props: {
   const sendHtml = () => {
     if (!iframeRef?.contentWindow) return
     const code = props.code
-    console.log("[UrlViewer] update code: ", code)
     if (code !== lastCode) {
       lastCode = code
       iframeRef.contentWindow.postMessage({ type: "ARMIN_EXECUTE", code }, "*")
     }
   }
 
-  onMount(() => {
+  createEffect(() => {
     if (iframeRef) iframeRef.src = props.url
+    props.onIframeRef?.(iframeRef)
+    onCleanup(() => props.onIframeRef?.(undefined))
 
-    const handleMessage = (e: MessageEvent) => {
-      console.log("[UrlViewer] Received message:", e.data)
+    const handler = (e: MessageEvent) => {
       if (e.data?.action === "download") {
-        console.log("[UrlViewer] Download action detected, calling onMessage")
         props.onMessage?.({ action: "download", url: e.data.url, suggestedName: e.data.suggestedName })
-      } else if (e.data?.action === 'ARMIN_UPDATE_CODE'){
-        
+      } else if (e.data?.action === "ARMIN_UPSERT_FILE") {
+        props.onMessage?.({ action: "upsert", content: e.data.content, fileName: e.data.fileName })
       }
     }
-    window.addEventListener("message", handleMessage)
-    return () => window.removeEventListener("message", handleMessage)
+    window.addEventListener("message", handler)
+    onCleanup(() => window.removeEventListener("message", handler))
   })
 
   createEffect(() => {
@@ -51,8 +59,6 @@ export function UrlViewer(props: {
         iframeRef.src = url
         lastUrl = url
         lastRefreshKey = refreshKey
-      } else {
-        console.log("[UrlViewer] URL unchanged, not updating iframe src")
       }
       lastCode = undefined
       if (props.code) {

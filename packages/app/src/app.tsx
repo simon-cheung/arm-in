@@ -38,11 +38,13 @@ import { ModelsProvider } from "@/context/models"
 import { NotificationProvider } from "@/context/notification"
 import { PermissionProvider } from "@/context/permission"
 import { PromptProvider } from "@/context/prompt"
+import { ReloadProvider } from "@/context/reload"
 import { ServerConnection, ServerProvider, serverName, useServer } from "@/context/server"
 import { SettingsProvider } from "@/context/settings"
 import { TerminalProvider } from "@/context/terminal"
 import DirectoryLayout from "@/pages/directory-layout"
 import Layout from "@/pages/layout"
+import { ReloadBridge } from "@/components/reload-bridge"
 import { ErrorPage } from "./pages/error"
 import { useCheckServerHealth } from "./utils/server-health"
 import { HOMEVIEW } from "@/env"
@@ -58,7 +60,9 @@ if (typeof location === "object" && /\/session(?:\/|$)/.test(location.pathname))
 
 const SessionRoute = () => (
   <SessionProviders>
-    <Session />
+    <ReloadBridge>
+      <Session />
+    </ReloadBridge>
   </SessionProviders>
 )
 
@@ -292,16 +296,18 @@ export function AppInterface(props: {
         <ServerKey>
           <GlobalSDKProvider>
             <GlobalSyncProvider>
-              <Dynamic
-                component={props.router ?? Router}
-                root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
-              >
-                <Route path="/" component={HomeRoute} />
-                <Route path="/:dir" component={DirectoryLayout}>
-                  <Route path="/" component={SessionIndexRoute} />
-                  <Route path="/session/:id?" component={SessionRoute} />
-                </Route>
-              </Dynamic>
+              <ReloadProvider>
+                <Dynamic
+                  component={props.router ?? Router}
+                  root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
+                >
+                  <Route path="/" component={HomeRoute} />
+                  <Route path="/:dir" component={DirectoryLayout}>
+                    <Route path="/" component={SessionIndexRoute} />
+                    <Route path="/session/:id?" component={SessionRoute} />
+                  </Route>
+                </Dynamic>
+              </ReloadProvider>
             </GlobalSyncProvider>
           </GlobalSDKProvider>
         </ServerKey>

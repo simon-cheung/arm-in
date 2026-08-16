@@ -115,7 +115,7 @@ export interface ToastOptions {
   actions?: ToastAction[]
 }
 
-export function showToast(options: ToastOptions | string) {
+export function showToast(options: ToastOptions | string): number {
   const opts = typeof options === "string" ? { description: options } : options
   return toaster.show((props) => (
     <Toast

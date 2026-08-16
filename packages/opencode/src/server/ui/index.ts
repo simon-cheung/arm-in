@@ -18,7 +18,7 @@ const DEFAULT_CSP = "default-src * 'unsafe-inline' data:; script-src * 'unsafe-i
 export const UIRoutes = (): Hono =>
   new Hono().all("/*", async (c) => {
     const urlPath = c.req.path
-    console.log(`[UIRoutes] ${c.req.method} ${c.req.path}`)
+    // console.log(`[UIRoutes] ${c.req.method} ${c.req.path}`)
     if (urlPath.startsWith("/__workdir__/")) {
       const remaining = urlPath.slice("/__workdir__/".length)
       const firstSlash = remaining.indexOf("/")
