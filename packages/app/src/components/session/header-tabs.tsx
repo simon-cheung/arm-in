@@ -8,12 +8,10 @@ import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, close
 import type { DragEvent } from "@thisbeyond/solid-dnd"
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
-import { useSessionLayout } from "@/pages/session/session-layout"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { showUrlInputDialog } from "@/components/dialog-url-input"
 import { SessionContextUsage } from "@/components/session-context-usage"
 import { SortableTab } from "@/components/session"
-import { decode64 } from "@/utils/base64"
 import { ConstrainDragYAxis, getDraggableId } from "@/utils/solid-dnd"
 import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
 import { getTabReorderIndex } from "@/pages/session/helpers"
@@ -30,27 +28,28 @@ export const HeaderTabs: Component<{
   }>
   activeTab: Accessor<string | undefined>
   openedTabs: Accessor<string[]>
-  homeviewOpen: Accessor<boolean>
-  homeviewUrl: Accessor<string>
-  playgroundOpen: Accessor<boolean>
-  playgroundUrl: Accessor<string>
-  playgroundRefresh: () => void
+  urlOpen: Accessor<boolean>
+  urlKey: Accessor<string | undefined>
+  urlHost: Accessor<string>
   contextOpen: Accessor<boolean>
   reviewTab: Accessor<boolean>
   canReview: Accessor<boolean>
   hasReview: Accessor<boolean>
   reviewCount: Accessor<number>
   onOpenFile: (tab: string) => void
+  onHome: () => void
+  onOpenUrl: (url: string) => void
   onOpenPlayground3D: () => void
+  onCloseActive: () => void
+  onRefreshActive: () => void
 }> = (props) => {
   const language = useLanguage()
   const command = useCommand()
   const dialog = useDialog()
-  const { params, view } = useSessionLayout()
 
   const handleTabChange = (tab: string) => {
     const all = props.tabs().all()
-    if (tab === "review" || tab === "context" || tab === "playground" || tab === "homeview" || tab === "empty") {
+    if (tab === "review" || tab === "context" || tab === "empty") {
       props.tabs().open(tab)
       return
     }
@@ -84,6 +83,19 @@ export const HeaderTabs: Component<{
     setDragStore("activeDraggable", undefined)
   }
 
+  const closable = () => {
+    const active = props.activeTab()
+    if (!active) return false
+    if (active === "context") return true
+    if (active.startsWith("url://")) return true
+    return props.openedTabs().includes(active)
+  }
+
+  const refreshable = () => {
+    const active = props.activeTab()
+    return typeof active === "string" && active.startsWith("url://")
+  }
+
   return (
     <Show when={props.centerMount()}>
       {(mount) => (
@@ -104,88 +116,17 @@ export const HeaderTabs: Component<{
                   onCleanup(stop)
                 }}
               >
-                <Show when={props.reviewTab() && props.canReview()}>
-                  <Tabs.Trigger value="review">
-                    <div class="flex items-center gap-1.5">
-                      <div>{language.t("session.tab.review")}</div>
-                      <Show when={props.hasReview()}>
-                        <div>{props.reviewCount()}</div>
-                      </Show>
-                    </div>
-                  </Tabs.Trigger>
-                </Show>
-                <Show when={props.contextOpen()}>
-                  <Tabs.Trigger
-                    value="context"
-                    closeButton={
-                      <TooltipKeybind
-                        title={language.t("common.closeTab")}
-                        keybind={command.keybind("tab.close")}
-                        placement="bottom"
-                        gutter={10}
-                      >
-                        <IconButton
-                          icon="close-small"
-                          variant="ghost"
-                          class="h-5 w-5"
-                          onClick={() => props.tabs().close("context")}
-                          aria-label={language.t("common.closeTab")}
-                        />
-                      </TooltipKeybind>
-                    }
-                    hideCloseButton
-                    onMiddleClick={() => props.tabs().close("context")}
-                  >
-                    <div class="flex items-center gap-2">
-                      <SessionContextUsage variant="indicator" />
-                      <div>{language.t("session.tab.context")}</div>
-                    </div>
-                  </Tabs.Trigger>
-                </Show>
-                <Show when={props.homeviewOpen()}>
-                  <Tooltip
-                    placement="bottom"
-                    gutter={6}
-                    value={<div class="max-w-sm break-all text-12-regular">{props.homeviewUrl() || "(empty)"}</div>}
-                  >
-                    <Tabs.Trigger value="homeview" hideCloseButton>
-                      <div class="flex items-center gap-1.5">
-                        <div>HomeView</div>
-                      </div>
-                    </Tabs.Trigger>
-                  </Tooltip>
-                </Show>
-                <Show when={props.playgroundOpen()}>
-                  <Tooltip
-                    placement="bottom"
-                    gutter={6}
-                    value={<div class="max-w-sm break-all text-12-regular">{props.playgroundUrl() || "(empty)"}</div>}
-                  >
-                    <Tabs.Trigger value="playground" hideCloseButton>
-                      <div class="flex items-center gap-1.5">
-                        <div>Playground</div>
-                        <TooltipKeybind title="Refresh" keybind="" class="flex items-center">
-                          <IconButton
-                            icon="reset"
-                            variant="ghost"
-                            class="h-4 w-4"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              props.playgroundRefresh()
-                            }}
-                            aria-label="Refresh playground"
-                          />
-                        </TooltipKeybind>
-                      </div>
-                    </Tabs.Trigger>
-                  </Tooltip>
-                </Show>
-                <SortableProvider ids={props.openedTabs()}>
-                  <For each={props.openedTabs()}>
-                    {(tab) => <SortableTab tab={tab} onTabClose={props.tabs().close} />}
-                  </For>
-                </SortableProvider>
-                <div class="flex items-center gap-1 ml-1">
+                <div class="flex items-center gap-1 mr-1">
+                  <TooltipKeybind title="Home" keybind="" class="flex items-center">
+                    <IconButton
+                      icon="folder"
+                      variant="ghost"
+                      iconSize="large"
+                      class="!rounded-md"
+                      onClick={props.onHome}
+                      aria-label="Home"
+                    />
+                  </TooltipKeybind>
                   <TooltipKeybind title="Open URL" keybind="" class="flex items-center">
                     <IconButton
                       icon="magnifying-glass"
@@ -195,16 +136,8 @@ export const HeaderTabs: Component<{
                       onClick={() => {
                         showUrlInputDialog(dialog, (url: string) => {
                           const trimmed = url.trim()
-                          if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-                            view().homeview.setUrl(trimmed)
-                            props.tabs().open("homeview")
-                          } else {
-                            const path = trimmed.startsWith("workspace://")
-                              ? trimmed
-                              : `workspace://${trimmed.replace(/^\/+/, "")}`
-                            view().playground.setUrl(path, decode64(params.dir) ?? "")
-                            props.tabs().open("playground")
-                          }
+                          if (!trimmed) return
+                          props.onOpenUrl(trimmed)
                         })
                       }}
                       aria-label="Open URL"
@@ -218,6 +151,28 @@ export const HeaderTabs: Component<{
                       class="!rounded-md"
                       onClick={props.onOpenPlayground3D}
                       aria-label="3D Playground"
+                    />
+                  </TooltipKeybind>
+                  <TooltipKeybind title="Close" keybind={command.keybind("tab.close")} class="flex items-center">
+                    <IconButton
+                      icon="close-small"
+                      variant="ghost"
+                      iconSize="large"
+                      class="!rounded-md"
+                      disabled={!closable()}
+                      onClick={props.onCloseActive}
+                      aria-label={language.t("common.closeTab")}
+                    />
+                  </TooltipKeybind>
+                  <TooltipKeybind title="Refresh" keybind="" class="flex items-center">
+                    <IconButton
+                      icon="reset"
+                      variant="ghost"
+                      iconSize="large"
+                      class="!rounded-md"
+                      disabled={!refreshable()}
+                      onClick={props.onRefreshActive}
+                      aria-label="Refresh"
                     />
                   </TooltipKeybind>
                   <TooltipKeybind
@@ -239,6 +194,47 @@ export const HeaderTabs: Component<{
                     />
                   </TooltipKeybind>
                 </div>
+                <div class="w-px h-4 bg-border-weaker-base" />
+                <Show when={props.reviewTab() && props.canReview()}>
+                  <Tabs.Trigger value="review">
+                    <div class="flex items-center gap-1.5">
+                      <div>{language.t("session.tab.review")}</div>
+                      <Show when={props.hasReview()}>
+                        <div>{props.reviewCount()}</div>
+                      </Show>
+                    </div>
+                  </Tabs.Trigger>
+                </Show>
+                <Show when={props.contextOpen()}>
+                  <Tabs.Trigger value="context" hideCloseButton onMiddleClick={() => props.tabs().close("context")}>
+                    <div class="flex items-center gap-2">
+                      <SessionContextUsage variant="indicator" />
+                      <div>{language.t("session.tab.context")}</div>
+                    </div>
+                  </Tabs.Trigger>
+                </Show>
+                <Show when={props.urlOpen() && props.urlKey()}>
+                  <Tooltip
+                    placement="bottom"
+                    gutter={6}
+                    value={
+                      <div class="max-w-sm break-all text-12-regular">
+                        {props.urlKey()?.slice("url://".length) ?? ""}
+                      </div>
+                    }
+                  >
+                    <Tabs.Trigger value={props.urlKey()!} hideCloseButton>
+                      <div class="flex items-center gap-1.5">
+                        <div>{props.urlHost() || "URL"}</div>
+                      </div>
+                    </Tabs.Trigger>
+                  </Tooltip>
+                </Show>
+                <SortableProvider ids={props.openedTabs()}>
+                  <For each={props.openedTabs()}>
+                    {(tab) => <SortableTab tab={tab} onTabClose={props.tabs().close} />}
+                  </For>
+                </SortableProvider>
               </Tabs.List>
             </Tabs>
             <DragOverlay>

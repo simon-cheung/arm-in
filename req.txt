@@ -1,0 +1,36 @@
+调整 url-view  相关功能
+- 顶部标签栏
+    - 添加一个 Home 按钮,打开 OPENCODE_HONME_VIEW；
+    - 也就是总共：Home, Open，3D 仿真，关闭，刷新
+    - 并且移动到周边。新建标签都在右侧展开
+    - 标签自身不再带有按钮，统一用顶部按钮
+- url-view 
+    - 不再固定打开 3d 仿真器
+    - 不记录到 session
+    -  用户通过按钮手动打开
+- 3D 仿真器
+    - 首先读取本地目录下的 config.json，获取 playgroundPath
+    - 将整个 config.json 的内容，转换成 base64  字符串，追加参数到 URL：prj=base64str.  参考代码：
+```
+function parseBase64(str) {
+  try {
+    // return JSON.parse(Buffer.from(str, 'base64').toString('utf-8'));
+    let txt = decodeURIComponent(escape(str));
+    return JSON.parse(decodeURIComponent(escape(atob(txt))));
+  } catch (e) {
+    console.error('Failed to parse base64 project info:', e);
+    return null;
+  }
+}
+
+function encodeBase64(obj) {
+  // 将字符串转换为 UTF-8 字节数组
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(JSON.stringify(obj));
+  // 将字节数组转换为 btoa 可处理的 ASCII 字符串
+  const asciiStr = String.fromCharCode(...bytes);
+  // 进行 Base64 编码
+  return btoa(asciiStr);  
+}
+```
+    - 用 url view 打开 playgroundPath(url,  本地 url,  本地文件)

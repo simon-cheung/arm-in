@@ -48,11 +48,12 @@ import {
   createSessionTabs,
   createSizing,
   focusTerminalById,
+  isUrlTab,
   shouldFocusTerminalOnKeyDown,
+  URL_TAB_PREFIX,
 } from "@/pages/session/helpers"
 import { MessageTimeline } from "@/pages/session/message-timeline"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
-import { SessionPlaygroundTab } from "@/pages/session/playground-tab"
 import { UrlViewer } from "@/components/url-viewer"
 import { decode64 } from "@/utils/base64"
 import { useSessionLayout } from "@/pages/session/session-layout"
@@ -403,34 +404,6 @@ export default function Page() {
     ),
   )
 
-  createEffect(
-    on(
-      () => params.id,
-      (id, prev) => {
-        if (!id) return
-        if (prev) return
-
-        const pending = layout.handoff.view()
-        if (!pending) return
-        if (Date.now() - pending.at > 60_000) {
-          layout.handoff.clearView()
-          return
-        }
-
-        if (pending.dir !== (params.dir ?? "")) return
-        layout.handoff.clearView()
-
-        if (!view().playground.url() && pending.view.playgroundUrl) {
-          batch(() => {
-            view().playground.setUrl(pending.view.playgroundUrl as string)
-            tabs().open("playground")
-          })
-        }
-      },
-      { defer: true },
-    ),
-  )
-
   const isDesktop = createMediaQuery("(min-width: 768px)")
   const size = createSizing()
   const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
@@ -472,21 +445,26 @@ export default function Page() {
   // const canReview = createMemo(() => !!sync.project)
   const canReview = createMemo(() => false)
   const reviewTab = createMemo(() => isDesktop())
-  const canPlayground = createMemo(() => isDesktop())
-  const canHomeview = createMemo(() => !!HOMEVIEW || view().homeview.hasRuntime())
   const tabState = createSessionTabs({
     tabs,
     pathFromTab: file.pathFromTab,
     normalizeTab,
     review: reviewTab,
     hasReview: canReview,
-    homeview: canHomeview,
-    playground: canPlayground,
-    playgroundUrl: view().playground.url,
   })
   const contextOpen = tabState.contextOpen
-  const homeviewOpen = tabState.homeviewOpen
-  const playgroundOpen = tabState.playgroundOpen
+  const urlOpen = tabState.urlOpen
+  const urlKey = tabState.urlKey
+  const urlHost = createMemo(() => {
+    const key = urlKey()
+    if (!key) return ""
+    const raw = key.slice(URL_TAB_PREFIX.length)
+    try {
+      return new URL(raw).host || raw
+    } catch {
+      return raw
+    }
+  })
   const openedTabs = tabState.openedTabs
   const activeTab = tabState.activeTab
   const activeFileTab = tabState.activeFileTab
@@ -1297,120 +1275,109 @@ export default function Page() {
     </div>
   )
 
-  const playgroundPanel = () => {
-    const urlAccessor = view().playground.url
-    return (
-      <div class="h-full w-full overflow-hidden">
-        <SessionPlaygroundTab url={urlAccessor} code={globalSync.playground.code} refreshKey={playgroundReloadKey()} />
-      </div>
-    )
-  }
-
-  const homeviewPanel = () => {
-    const url = view().homeview.url()
+  const urlPanel = () => {
+    const url = view().url.url()
     if (!url) return null
     return (
       <div class="h-full w-full overflow-hidden">
-        <UrlViewer url={url} />
+        <UrlViewer url={url} refreshKey={urlReloadKey()} />
       </div>
     )
   }
 
   const contextPanel = () => <SessionContextTab />
 
-  const [playgroundReloadKey, setPlaygroundReloadKey] = createSignal(0)
+  const [urlReloadKey, setUrlReloadKey] = createSignal(0)
 
-  const probePlayground = async () => {
-    const rawDir = params.dir
-    if (!rawDir) return
-    const dir = decode64(rawDir) ?? ""
-    if (!dir) return
-    const fnow = Date.now()
-    try {
-      const res = await sdk.client.file.read({ path: "_playground/index.html" })
-      if (res?.data) {
-        view().playground.setUrl(`workspace://_playground/index.html?_v=${fnow}&&lessonBase=../`, dir)
-        tabs().open("playground")
-      } else {
-        view().playground.clear()
-      }
-    } catch {
-      view().playground.clear()
-    }
+  const encodeBase64 = (text: string) => {
+    const bytes = new TextEncoder().encode(text)
+    let bin = ""
+    for (const b of bytes) bin += String.fromCharCode(b)
+    return btoa(bin)
   }
 
-  const playgroundRefresh = () => {
-    setPlaygroundReloadKey((k) => k + 1)
+  const appendQuery = (url: string, params: Record<string, string>) => {
+    const sep = url.includes("?") ? "&" : "?"
+    const qs = Object.entries(params)
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join("&")
+    return url + sep + qs
   }
 
-  const openPlayground3D = async () => {
-    if (!isProjectReady()) return
+  const openUrl = (rawUrl: string) => {
+    const dir = decode64(params.dir) ?? ""
+    const key = `${URL_TAB_PREFIX}${rawUrl}`
+    view().url.setUrl(rawUrl, dir)
+    tabs().open(key)
+  }
+
+  const openHomeview = () => openUrl(HOMEVIEW)
+
+  const openPlaygroundFromConfig = async () => {
     const dir = decode64(params.dir) ?? ""
     if (!dir) return
-    const res = await sdk.client.file.read({ path: "_playground/index.html" }).catch(() => undefined)
-    if (!res?.data) {
+
+    const res = await sdk.client.file.read({ path: "config.json" }).catch(() => undefined)
+    if (!res?.data?.content) {
       showToast({
         variant: "default",
         title: "3D Playground",
-        description: "No _playground/index.html found in workspace.",
+        description: "No config.json found in workspace.",
       })
       return
     }
-    view().playground.setUrl(`workspace://_playground/index.html?_v=${Date.now()}&&lessonBase=../`, dir)
-    tabs().open("playground")
+
+    const text = res.data.content
+    let cfg: any
+    try {
+      cfg = JSON.parse(text)
+    } catch {
+      showToast({
+        variant: "default",
+        title: "3D Playground",
+        description: "config.json is not valid JSON.",
+      })
+      return
+    }
+
+    const target = cfg?.playgroundPath
+    if (typeof target !== "string" || !target) {
+      showToast({
+        variant: "default",
+        title: "3D Playground",
+        description: "No playgroundPath in config.json.",
+      })
+      return
+    }
+
+    let finalUrl: string
+    if (target.startsWith("http://") || target.startsWith("https://")) {
+      finalUrl = appendQuery(target, { prj: encodeBase64(text), _v: String(Date.now()) })
+    } else {
+      const filePath = target.replace(/^\/+/, "")
+      const prj = encodeBase64(text)
+      finalUrl = `workspace://${filePath}?prj=${encodeURIComponent(prj)}&_v=${Date.now()}&lessonBase=../`
+    }
+
+    openUrl(finalUrl)
   }
 
-  const currentProjectDir = createMemo(() => sync.data.path.directory)
-  const isProjectReady = createMemo(() => {
-    const expected = decode64(params.dir) ?? ""
-    if (!expected) return false
-    return currentProjectDir() === expected
-  })
-
-  createEffect(
-    on(
-      () => globalSync.playground.url(),
-      (url) => {
-        if (!url) return
-        if (!isProjectReady()) return
-        const dir = decode64(params.dir) ?? ""
-        view().playground.setUrl(url, dir)
-        tabs().open("playground")
-      },
-    ),
-  )
-
-  const runProbe = () => {
-    if (!isProjectReady()) return
-    void probePlayground()
+  const closeActive = () => {
+    const active = activeTab()
+    if (!active) return
+    if (isUrlTab(active)) {
+      view().url.clear()
+      tabs().close(active)
+      return
+    }
+    if (openedTabs().includes(active)) {
+      tabs().close(active)
+    }
   }
 
-  createEffect(
-    on(
-      () => params.dir,
-      () => {
-        runProbe()
-      },
-    ),
-  )
-
-  createEffect(
-    on(isProjectReady, (ready) => {
-      if (ready) runProbe()
-    }),
-  )
-
-  createEffect(
-    on(
-      () => params.id,
-      (id, prev) => {
-        if (!id) return
-        if (prev) return
-        runProbe()
-      },
-      { defer: true },
-    ),
-  )
+  const refreshActive = () => {
+    if (isUrlTab(activeTab() ?? "")) setUrlReloadKey((k) => k + 1)
+  }
 
   createEffect(
     on(
@@ -2049,11 +2016,9 @@ export default function Page() {
         tabs={tabs}
         activeTab={activeTab}
         openedTabs={openedTabs}
-        homeviewOpen={homeviewOpen}
-        homeviewUrl={view().homeview.url}
-        playgroundOpen={playgroundOpen}
-        playgroundUrl={view().playground.url}
-        playgroundRefresh={playgroundRefresh}
+        urlOpen={urlOpen}
+        urlKey={urlKey}
+        urlHost={urlHost}
         contextOpen={contextOpen}
         reviewTab={reviewTab}
         canReview={canReview}
@@ -2064,7 +2029,19 @@ export default function Page() {
           tabs().open(tab)
           file.load(path)
         }}
-        onOpenPlayground3D={() => void openPlayground3D()}
+        onHome={openHomeview}
+        onOpenUrl={(url: string) => {
+          const trimmed = url.trim()
+          if (trimmed.startsWith("workspace://") || (!trimmed.includes("://") && trimmed.length > 0)) {
+            const path = trimmed.startsWith("workspace://") ? trimmed : `workspace://${trimmed.replace(/^\/+/, "")}`
+            openUrl(path)
+            return
+          }
+          openUrl(trimmed)
+        }}
+        onOpenPlayground3D={() => void openPlaygroundFromConfig()}
+        onCloseActive={closeActive}
+        onRefreshActive={refreshActive}
       />
       <div class="flex-1 min-h-0 flex flex-col md:flex-row">
         <Show when={!isDesktop() && !!params.id}>
@@ -2230,13 +2207,11 @@ export default function Page() {
           reviewCount={reviewCount}
           reviewPanel={reviewPanel}
           contextPanel={contextPanel}
-          homeviewPanel={homeviewPanel}
+          urlPanel={urlPanel}
           activeDiff={tree.activeDiff}
           focusReviewDiff={focusReviewDiff}
           reviewSnap={ui.reviewSnap}
           size={size}
-          playgroundPanel={playgroundPanel}
-          canPlayground={canPlayground}
         />
       </div>
 

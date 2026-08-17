@@ -1,5 +1,5 @@
 import { createStore, produce } from "solid-js/store"
-import { batch, createEffect, createMemo, onCleanup, onMount, type Accessor } from "solid-js"
+import { batch, createEffect, createMemo, createSignal, onCleanup, onMount, type Accessor } from "solid-js"
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { useGlobalSync } from "./global-sync"
@@ -11,7 +11,8 @@ import { Persist, persisted, removePersisted } from "@/utils/persist"
 import { decode64 } from "@/utils/base64"
 import { base64Encode } from "@opencode-ai/util/encode"
 import { same } from "@/utils/same"
-import { HOMEVIEW } from "@/env"
+const URL_TAB_PREFIX = "url://"
+const isUrlTab = (tab: string) => tab.startsWith(URL_TAB_PREFIX)
 import { createScrollPersistence, type SessionScroll } from "./layout-scroll"
 import { createPathHelpers } from "./file/path"
 
@@ -45,19 +46,11 @@ type SessionView = {
   reviewOpen?: string[]
   pendingMessage?: string
   pendingMessageAt?: number
-  playgroundUrl?: string
-  homeviewUrl?: string
 }
 
 type TabHandoff = {
   dir: string
   id: string
-  at: number
-}
-
-type ViewHandoff = {
-  dir: string
-  view: SessionView
   at: number
 }
 
@@ -104,9 +97,9 @@ export function pruneSessionKeys(input: {
 
 function nextSessionTabsForOpen(current: SessionTabs | undefined, tab: string): SessionTabs {
   const all = current?.all ?? []
-  if (tab === "review" || tab === "playground" || tab === "homeview")
-    return { all: all.filter((x) => x !== tab), active: tab }
+  if (tab === "review") return { all: all.filter((x) => x !== tab), active: tab }
   if (tab === "context") return { all: [tab, ...all.filter((x) => x !== tab)], active: tab }
+  if (isUrlTab(tab)) return { all: all.filter((x) => !isUrlTab(x) && x !== tab).concat(tab), active: tab }
   if (!all.includes(tab)) return { all: [...all, tab], active: tab }
   return { all, active: tab }
 }
@@ -128,7 +121,7 @@ const normalizeSessionTab = (path: ReturnType<typeof createPathHelpers> | undefi
 const normalizeSessionTabList = (path: ReturnType<typeof createPathHelpers> | undefined, all: string[]) => {
   const seen = new Set<string>()
   return all
-    .filter((tab) => tab !== "review" && tab !== "playground")
+    .filter((tab) => tab !== "review")
     .flatMap((tab) => {
       const value = normalizeSessionTab(path, tab)
       if (seen.has(value)) return []
@@ -268,17 +261,15 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         mobileSidebar: {
           opened: false,
         },
-        playground: {
-          url: "" as string,
-        },
         sessionTabs: {} as Record<string, SessionTabs>,
         sessionView: {} as Record<string, SessionView>,
         handoff: {
           tabs: undefined as TabHandoff | undefined,
-          view: undefined as ViewHandoff | undefined,
         },
       }),
     )
+
+    const [urlUrls, setUrlUrls] = createSignal<Record<string, string>>({})
 
     const MAX_SESSION_KEYS = 50
     const PENDING_MESSAGE_TTL_MS = 2 * 60 * 1000
@@ -593,14 +584,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           if (!store.handoff?.tabs) return
           setStore("handoff", "tabs", undefined)
         },
-        view: createMemo(() => store.handoff?.view),
-        setView(dir: string, view: SessionView) {
-          setStore("handoff", "view", { dir, view, at: Date.now() })
-        },
-        clearView() {
-          if (!store.handoff?.view) return
-          setStore("handoff", "view", undefined)
-        },
       },
       projects: {
         list,
@@ -889,8 +872,8 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
               this.closePath(path)
             },
           },
-          playground: {
-            url: createMemo(() => s().playgroundUrl ?? ""),
+          url: {
+            url: createMemo(() => urlUrls()[key()] ?? ""),
             setUrl(url: string, directory?: string) {
               const session = key()
               let finalUrl = url
@@ -899,37 +882,16 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
                 const encoded = base64Encode(directory ?? "")
                 finalUrl = `${globalSdk.url}/__workdir__/${encoded}/${filePath}`
               }
-              const current = store.sessionView[session]
-              if (!current) {
-                setStore("sessionView", session, { scroll: {}, playgroundUrl: finalUrl })
-                return
-              }
-              setStore("sessionView", session, "playgroundUrl", finalUrl)
+              setUrlUrls((prev) => ({ ...prev, [session]: finalUrl }))
             },
             clear() {
               const session = key()
-              const current = store.sessionView[session]
-              if (!current?.playgroundUrl) return
-              setStore("sessionView", session, "playgroundUrl", undefined)
-            },
-          },
-          homeview: {
-            url: createMemo(() => s().homeviewUrl ?? HOMEVIEW ?? ""),
-            hasRuntime: createMemo(() => !!s().homeviewUrl),
-            setUrl(url: string) {
-              const session = key()
-              const current = store.sessionView[session]
-              if (!current) {
-                setStore("sessionView", session, { scroll: {}, homeviewUrl: url })
-                return
-              }
-              setStore("sessionView", session, "homeviewUrl", url)
-            },
-            clear() {
-              const session = key()
-              const current = store.sessionView[session]
-              if (!current?.homeviewUrl) return
-              setStore("sessionView", session, "homeviewUrl", undefined)
+              if (!urlUrls()[session]) return
+              setUrlUrls((prev) => {
+                const next = { ...prev }
+                delete next[session]
+                return next
+              })
             },
           },
         }
@@ -943,9 +905,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         return {
           tabs,
           active: createMemo(() => tabs().active),
-          all: createMemo(() =>
-            tabs().all.filter((tab) => tab !== "review" && tab !== "playground" && tab !== "homeview"),
-          ),
+          all: createMemo(() => tabs().all.filter((tab) => tab !== "review")),
           setActive(tab: string | undefined) {
             const session = key()
             const next = tab ? normalize(tab) : tab
@@ -957,7 +917,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           },
           setAll(all: string[]) {
             const session = key()
-            const next = normalizeAll(all).filter((tab) => tab !== "review" && tab !== "playground")
+            const next = normalizeAll(all).filter((tab) => tab !== "review")
             if (!store.sessionTabs[session]) {
               setStore("sessionTabs", session, { all: next, active: undefined })
             } else {

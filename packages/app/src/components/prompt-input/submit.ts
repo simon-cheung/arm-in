@@ -379,13 +379,6 @@ export function createPromptSubmit(input: PromptSubmitInput) {
         local.session.promote(sessionDirectory, session.id)
 
         const workspaceKey = base64Encode(sessionDirectory)
-        const workspaceView = layout.view(workspaceKey).peek()
-        if (workspaceView?.playgroundUrl) {
-          layout.handoff.setView(workspaceKey, {
-            scroll: workspaceView.scroll ?? {},
-            playgroundUrl: workspaceView.playgroundUrl,
-          })
-        }
 
         layout.handoff.setTabs(workspaceKey, session.id)
         navigate(`/${workspaceKey}/session/${session.id}`)

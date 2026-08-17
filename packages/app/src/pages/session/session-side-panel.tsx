@@ -23,13 +23,11 @@ export function SessionSidePanel(props: {
   reviewCount: () => number
   reviewPanel: () => JSX.Element
   contextPanel: () => JSX.Element
-  homeviewPanel: () => JSX.Element
+  urlPanel: () => JSX.Element
   activeDiff?: string
   focusReviewDiff: (path: string) => void
   reviewSnap: boolean
   size: Sizing
-  playgroundPanel: () => JSX.Element
-  canPlayground: () => boolean
 }) {
   const layout = useLayout()
   const file = useFile()
@@ -41,8 +39,6 @@ export function SessionSidePanel(props: {
   const reviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
   const fileOpen = createMemo(() => isDesktop() && layout.fileTree.opened())
   const reviewTab = createMemo(() => isDesktop())
-  const homeviewTab = createMemo(() => isDesktop())
-  const playgroundTab = createMemo(() => isDesktop() && props.canPlayground())
 
   const normalizeTab = (tab: string) => {
     if (!tab.startsWith("file://")) return tab
@@ -55,19 +51,16 @@ export function SessionSidePanel(props: {
     normalizeTab,
     review: reviewTab,
     hasReview: props.canReview,
-    homeview: homeviewTab,
-    playground: playgroundTab,
   })
   const contextOpen = tabState.contextOpen
-  const homeviewOpen = tabState.homeviewOpen
-  const playgroundOpen = tabState.playgroundOpen
+  const urlOpen = tabState.urlOpen
   const activeTab = tabState.activeTab
   const activeFileTab = tabState.activeFileTab
 
-  const open = createMemo(() => reviewOpen() || fileOpen() || playgroundOpen() || homeviewOpen())
+  const open = createMemo(() => reviewOpen() || fileOpen() || urlOpen())
   const panelWidth = createMemo(() => {
     if (!open()) return "0px"
-    if (reviewOpen() || playgroundOpen() || homeviewOpen()) return `calc(100% - ${layout.session.width()}px)`
+    if (reviewOpen() || urlOpen()) return `calc(100% - ${layout.session.width()}px)`
     return `${layout.fileTree.width()}px`
   })
   const treeWidth = createMemo(() => (fileOpen() ? `${layout.fileTree.width()}px` : "0px"))
@@ -203,11 +196,8 @@ export function SessionSidePanel(props: {
               <Show when={activeTab() === "context" && contextOpen()}>
                 <div class="flex flex-col h-full overflow-hidden contain-strict">{props.contextPanel()}</div>
               </Show>
-              <Show when={activeTab() === "homeview" && homeviewOpen()}>
-                <div class="flex flex-col h-full overflow-hidden contain-strict">{props.homeviewPanel()}</div>
-              </Show>
-              <Show when={activeTab() === "playground" && playgroundOpen()}>
-                <div class="flex flex-col h-full overflow-hidden contain-strict">{props.playgroundPanel()}</div>
+              <Show when={typeof activeTab() === "string" && activeTab()!.startsWith("url://") && urlOpen()}>
+                <div class="flex flex-col h-full overflow-hidden contain-strict">{props.urlPanel()}</div>
               </Show>
               <Show when={activeFileTab()} keyed>
                 {(tab) => <FileTabContent tab={tab} />}
