@@ -8,7 +8,7 @@ export interface UrlViewerMessage {
 
 export interface UrlViewerUpsertFile {
   fileName: string
-  content: string
+  url: string
 }
 
 export interface UrlViewerUpsertMessage {

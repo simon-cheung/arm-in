@@ -36,11 +36,6 @@ export function SessionPlaygroundTab(props: SessionPlaygroundTabProps) {
     return props.fallbackDirectory?.()
   }
 
-  function instanceClient() {
-    const directory = resolveDirectory()
-    return directory ? globalSDK.createClient({ directory, throwOnError: true }) : globalSDK.client
-  }
-
   async function startNewSession() {
     const directory = resolveDirectory()
     if (!directory) return
@@ -60,6 +55,14 @@ export function SessionPlaygroundTab(props: SessionPlaygroundTabProps) {
     }
   }
 
+  function sortZipFirst<T extends { fileName: string }>(arr: T[]): T[] {
+    return [...arr].sort((a, b) => {
+      const az = a.fileName.toLowerCase().endsWith(".zip") ? 0 : 1
+      const bz = b.fileName.toLowerCase().endsWith(".zip") ? 0 : 1
+      return az - bz
+    })
+  }
+
   async function handleMessage(msg: UrlViewerAnyMessage) {
     if (msg.action === "download") {
       dialog.show(
@@ -70,10 +73,10 @@ export function SessionPlaygroundTab(props: SessionPlaygroundTabProps) {
     }
 
     if (msg.action === "upsert") {
-      const entries = Array.isArray(msg.files)
-        ? msg.files
+      const entries: Array<{ fileName: string; url: string }> = Array.isArray(msg.files)
+        ? msg.files.map((f) => ({ fileName: f.fileName, url: f.url }))
         : msg.fileName && typeof msg.content === "string"
-          ? [{ fileName: msg.fileName, content: msg.content }]
+          ? [{ fileName: msg.fileName, url: msg.content }]
           : []
 
       if (entries.length === 0) {
@@ -88,37 +91,49 @@ export function SessionPlaygroundTab(props: SessionPlaygroundTabProps) {
         return
       }
 
-      await runBatch(entries, ackKey)
+      await runBatch(sortZipFirst(entries), ackKey)
     }
   }
 
-  async function runBatch(entries: Array<{ fileName: string; content: string }>, ackKey: string) {
+  async function runBatch(entries: Array<{ fileName: string; url: string }>, ackKey: string) {
     const directory = resolveDirectory()
+    if (!directory) {
+      ackIframe(ackKey, false, "Project directory not resolved")
+      return
+    }
+
     toaster.clear()
     const title =
       entries.length === 1
         ? entries[0].fileName.toLowerCase().endsWith(".zip")
           ? `Extracting ${entries[0].fileName}…`
-          : `Saving ${entries[0].fileName}…`
-        : `Saving ${entries.length} files…`
+          : `Downloading ${entries[0].fileName}…`
+        : `Downloading ${entries.length} files…`
     const toast = createTaskToast({ title })
 
-    const results = await Promise.all(
-      entries.map(async (entry) => {
-        try {
-          if (entry.fileName.toLowerCase().endsWith(".zip")) {
-            await extractZip(entry.fileName, entry.content)
-            return { fileName: entry.fileName, ok: true as const }
-          }
-          await writeFile(entry.fileName, entry.content)
-          return { fileName: entry.fileName, ok: true as const }
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err)
-          return { fileName: entry.fileName, ok: false as const, error: message }
-        }
-      }),
-    )
+    let data: { results?: Array<{ fileName: string; ok: boolean; error?: string }> } = {}
+    try {
+      const response = await fetch(
+        `${globalSDK.url}/experimental/remote-workspace/download?directory=${encodeURIComponent(directory)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ files: entries, targetDir: directory }),
+        },
+      )
+      data = await response.json().catch(() => ({}))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      ackIframe(ackKey, false, message)
+      toast.fail({
+        title: "保存失败",
+        description: message,
+        actions: [{ label: "Close", onClick: "dismiss" }],
+      })
+      return
+    }
 
+    const results = Array.isArray(data.results) ? data.results : []
     const failures = results.filter((r) => !r.ok)
 
     if (failures.length === 0) {
@@ -129,8 +144,7 @@ export function SessionPlaygroundTab(props: SessionPlaygroundTabProps) {
             : `Saved ${entries[0].fileName}`
           : `Saved ${entries.length} files`
       ackIframe(ackKey, true)
-      toast.update({ title: "重新加载项目…" })
-      if (directory) reload.trigger({ directory, source: "upsert" })
+      reload.trigger({ directory, source: "upsert" })
       toast.finish({
         title: okTitle,
         actions: [
@@ -141,40 +155,13 @@ export function SessionPlaygroundTab(props: SessionPlaygroundTabProps) {
       return
     }
 
-    const description = failures.map((f) => `${f.fileName}: ${"error" in f ? f.error : "failed"}`).join("\n")
+    const description = failures.map((f) => `${f.fileName}: ${f.error ?? "failed"}`).join("\n")
     ackIframe(ackKey, false, failures[0].error)
     toast.fail({
       title: entries.length === 1 ? "保存失败" : `保存失败 (${failures.length}/${entries.length})`,
       description,
       actions: [{ label: "Close", onClick: "dismiss" }],
     })
-  }
-
-  async function writeFile(fileName: string, expected: string) {
-    await instanceClient().file.write({
-      path: fileName,
-      content: expected,
-    })
-    const readRes = await instanceClient().file.read({ path: fileName })
-    const actual = readRes.data?.content
-    if (actual !== expected) {
-      throw new Error(`Read-back mismatch (expected ${expected.length} bytes, got ${actual?.length ?? 0})`)
-    }
-  }
-
-  async function extractZip(fileName: string, url: string) {
-    const directory = resolveDirectory()
-    if (!directory) throw new Error("Project directory not resolved")
-    const response = await fetch(
-      `${globalSDK.url}/experimental/remote-workspace/download?directory=${encodeURIComponent(directory)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, targetDir: directory }),
-      },
-    )
-    const result = await response.json().catch(() => ({}))
-    if (!response.ok || result.error) throw new Error(result.error ?? `HTTP ${response.status}`)
   }
 
   return (

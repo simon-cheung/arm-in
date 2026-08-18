@@ -84,17 +84,24 @@
       <label for="fileNameInput">File name</label>
       <input type="text" id="fileNameInput" placeholder="hello.txt, AGENTS.md, or foo.zip" value="hello.txt" />
 
-      <label for="contentInput">Content (file content, or zip URL if filename ends with .zip)</label>
-      <textarea id="contentInput" placeholder="// file content here; for .zip, paste a URL">hello from iframe</textarea>
+      <label for="contentInput">URL the backend will download (file content if non-zip, zip if .zip)</label>
+      <textarea id="contentInput" placeholder="https://example.com/path/to/hello.txt">
+https://raw.githubusercontent.com/octocat/Hello-World/master/README</textarea
+      >
 
       <button id="saveBtn" onclick="sendUpsertMessage()">Save Single File</button>
 
       <h2>Batch (JSON array)</h2>
-      <label for="batchInput">Files as JSON array: [{ fileName, content }, ...]</label>
-      <textarea id="batchInput" placeholder='[{"fileName":"a.txt","content":"A"},{"fileName":"b.txt","content":"B"}]'>
+<label for="batchInput">Files as JSON array: [{ fileName, url }, ...] — each url is a URL</label>
+      <textarea id="batchInput" placeholder='[{"fileName":"a.txt","url":"https://..."},{"fileName":"b.zip","url":"https://.../b.zip"}]'>
 [
-  { "fileName": "batch-a.txt", "content": "first file in batch" },
-  { "fileName": "batch-b.txt", "content": "second file in batch" }
+  { "fileName": "batch-a.txt", "url": "https://raw.githubusercontent.com/octocat/Hello-World/master/README" },
+  { "fileName": "batch-b.txt", "url": "https://raw.githubusercontent.com/octocat/Spoon-Knife/master/README.md" }
+]</textarea
+      >
+[
+  { "fileName": "batch-a.txt", "content": "https://raw.githubusercontent.com/octocat/Hello-World/master/README" },
+  { "fileName": "batch-b.txt", "content": "https://raw.githubusercontent.com/octocat/Spoon-Knife/master/README.md" }
 ]</textarea
       >
 
@@ -115,10 +122,9 @@
         statusEl.className = "status" + (kind ? " " + kind : "")
       }
 
-      function validateZipUrl(fileName, content) {
-        if (!fileName.toLowerCase().endsWith(".zip")) return null
-        if (!content) return "For .zip, content is required"
-        if (!/^https?:\/\//.test(content)) return "For .zip, content must be a URL starting with http:// or https://"
+      function validateUrl(fileName, url) {
+        if (!url) return `${fileName}: url is required`
+        if (!/^https?:\/\//.test(url)) return `${fileName}: url must start with http:// or https://`
         return null
       }
 
@@ -143,22 +149,22 @@
 
       async function sendUpsertMessage() {
         const fileName = fileNameInput.value.trim()
-        const content = contentInput.value
+        const url = contentInput.value.trim()
         if (!fileName) {
           setStatus("File name is required", "err")
           return
         }
-        const zipErr = validateZipUrl(fileName, content)
-        if (zipErr) {
-          setStatus(zipErr, "err")
+        const err = validateUrl(fileName, url)
+        if (err) {
+          setStatus(err, "err")
           return
         }
         saveBtn.disabled = true
         batchBtn.disabled = true
-        const kind = fileName.toLowerCase().endsWith(".zip") ? "extracting" : "saving"
+        const kind = fileName.toLowerCase().endsWith(".zip") ? "extracting" : "downloading"
         setStatus(`Sending ${fileName} to parent (parent will ${kind})…`, "")
         try {
-          await sendMessage({ action: "ARMIN_UPSERT_FILE", content, fileName }, fileName, fileName)
+          await sendMessage({ action: "ARMIN_UPSERT_FILE", url, fileName }, fileName, fileName)
           setStatus(`Saved ${fileName}`, "ok")
         } catch (err) {
           setStatus(`Failed: ${err.message}`, "err")
@@ -186,13 +192,14 @@
           return
         }
         for (const f of files) {
-          if (!f || typeof f.fileName !== "string" || typeof f.content !== "string") {
-            setStatus("Each entry must be { fileName: string, content: string }", "err")
+          if (!f || typeof f.fileName !== "string" || typeof f.url !== "string") {
+            setStatus("Each entry must be { fileName: string, url: string }", "err")
             return
           }
-          const zipErr = validateZipUrl(f.fileName, f.content)
-          if (zipErr) {
-            setStatus(`${f.fileName}: ${zipErr}`, "err")
+          f.url = f.url.trim()
+          const err = validateUrl(f.fileName, f.url)
+          if (err) {
+            setStatus(err, "err")
             return
           }
         }
