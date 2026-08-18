@@ -6,10 +6,16 @@ export interface UrlViewerMessage {
   suggestedName?: string
 }
 
+export interface UrlViewerUpsertFile {
+  fileName: string
+  content: string
+}
+
 export interface UrlViewerUpsertMessage {
   action: "upsert"
-  content: string
-  fileName: string
+  content?: string
+  fileName?: string
+  files?: UrlViewerUpsertFile[]
 }
 
 export type UrlViewerAnyMessage = UrlViewerMessage | UrlViewerUpsertMessage
@@ -38,13 +44,20 @@ export function UrlViewer(props: {
   createEffect(() => {
     if (iframeRef) iframeRef.src = props.url
     props.onIframeRef?.(iframeRef)
-    onCleanup(() => props.onIframeRef?.(undefined))
+    onCleanup(() => {
+      if (iframeRef) iframeRef.src = "about:blank"
+      props.onIframeRef?.(undefined)
+    })
 
     const handler = (e: MessageEvent) => {
       if (e.data?.action === "download") {
         props.onMessage?.({ action: "download", url: e.data.url, suggestedName: e.data.suggestedName })
       } else if (e.data?.action === "ARMIN_UPSERT_FILE") {
-        props.onMessage?.({ action: "upsert", content: e.data.content, fileName: e.data.fileName })
+        if (Array.isArray(e.data.files)) {
+          props.onMessage?.({ action: "upsert", files: e.data.files })
+        } else {
+          props.onMessage?.({ action: "upsert", content: e.data.content, fileName: e.data.fileName })
+        }
       }
     }
     window.addEventListener("message", handler)

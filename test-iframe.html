@@ -17,6 +17,11 @@
         font-size: 18px;
         margin-bottom: 20px;
       }
+      h2 {
+        font-size: 14px;
+        margin: 18px 0 10px;
+        color: #ccc;
+      }
       label {
         display: block;
         font-size: 12px;
@@ -61,6 +66,7 @@
         margin-top: 12px;
         font-size: 12px;
         min-height: 18px;
+        white-space: pre-wrap;
       }
       .status.ok {
         color: #4ade80;
@@ -74,24 +80,65 @@
     <div class="container">
       <h1>Upsert File to Workspace</h1>
 
+      <h2>Single file</h2>
       <label for="fileNameInput">File name</label>
       <input type="text" id="fileNameInput" placeholder="hello.txt, AGENTS.md, or foo.zip" value="hello.txt" />
 
       <label for="contentInput">Content (file content, or zip URL if filename ends with .zip)</label>
       <textarea id="contentInput" placeholder="// file content here; for .zip, paste a URL">hello from iframe</textarea>
 
-      <button id="saveBtn" onclick="sendUpsertMessage()">Save to Workspace</button>
+      <button id="saveBtn" onclick="sendUpsertMessage()">Save Single File</button>
+
+      <h2>Batch (JSON array)</h2>
+      <label for="batchInput">Files as JSON array: [{ fileName, content }, ...]</label>
+      <textarea id="batchInput" placeholder='[{"fileName":"a.txt","content":"A"},{"fileName":"b.txt","content":"B"}]'>
+[
+  { "fileName": "batch-a.txt", "content": "first file in batch" },
+  { "fileName": "batch-b.txt", "content": "second file in batch" }
+]</textarea
+      >
+
+      <button id="batchBtn" onclick="sendBatchUpsertMessage()">Save Batch</button>
+
       <div id="status" class="status"></div>
     </div>
     <script>
       const fileNameInput = document.getElementById("fileNameInput")
       const contentInput = document.getElementById("contentInput")
       const saveBtn = document.getElementById("saveBtn")
+      const batchInput = document.getElementById("batchInput")
+      const batchBtn = document.getElementById("batchBtn")
       const statusEl = document.getElementById("status")
 
       function setStatus(text, kind) {
         statusEl.textContent = text || ""
         statusEl.className = "status" + (kind ? " " + kind : "")
+      }
+
+      function validateZipUrl(fileName, content) {
+        if (!fileName.toLowerCase().endsWith(".zip")) return null
+        if (!content) return "For .zip, content is required"
+        if (!/^https?:\/\//.test(content)) return "For .zip, content must be a URL starting with http:// or https://"
+        return null
+      }
+
+      function sendMessage(payload, ackKey, label) {
+        return new Promise((resolve, reject) => {
+          const handler = (e) => {
+            if (e.data?.action !== "ARMIN_UPSERT_DONE") return
+            if (e.data.fileName !== ackKey) return
+            window.removeEventListener("message", handler)
+            clearTimeout(timer)
+            if (e.data.ok) resolve(e.data)
+            else reject(new Error(e.data.error || "upsert failed"))
+          }
+          window.addEventListener("message", handler)
+          const timer = setTimeout(() => {
+            window.removeEventListener("message", handler)
+            reject(new Error("timeout waiting for parent ack"))
+          }, 60000)
+          window.parent.postMessage(payload, "*")
+        })
       }
 
       async function sendUpsertMessage() {
@@ -101,34 +148,79 @@
           setStatus("File name is required", "err")
           return
         }
-        if (fileName.toLowerCase().endsWith(".zip") && content && !/^https?:\/\//.test(content)) {
-          setStatus("For .zip, content must be a URL starting with http:// or https://", "err")
+        const zipErr = validateZipUrl(fileName, content)
+        if (zipErr) {
+          setStatus(zipErr, "err")
           return
         }
         saveBtn.disabled = true
+        batchBtn.disabled = true
         const kind = fileName.toLowerCase().endsWith(".zip") ? "extracting" : "saving"
-        setStatus(`Sending ${fileName} to parent (parent will ${kind} then show a done overlay)…`, "")
+        setStatus(`Sending ${fileName} to parent (parent will ${kind})…`, "")
         try {
-          const result = await new Promise((resolve, reject) => {
-            const handler = (e) => {
-              if (e.data?.action !== "ARMIN_UPSERT_DONE") return
-              if (e.data.fileName !== fileName) return
-              window.removeEventListener("message", handler)
-              clearTimeout(timer)
-              if (e.data.ok) resolve(e.data)
-              else reject(new Error(e.data.error || "upsert failed"))
-            }
-            window.addEventListener("message", handler)
-            const timer = setTimeout(() => {
-              window.removeEventListener("message", handler)
-              reject(new Error("timeout waiting for parent ack"))
-            }, 60000)
-            window.parent.postMessage({ action: "ARMIN_UPSERT_FILE", content, fileName }, "*")
-          })
+          await sendMessage({ action: "ARMIN_UPSERT_FILE", content, fileName }, fileName, fileName)
           setStatus(`Saved ${fileName}`, "ok")
         } catch (err) {
           setStatus(`Failed: ${err.message}`, "err")
         } finally {
+          saveBtn.disabled = false
+          batchBtn.disabled = false
+        }
+      }
+
+      async function sendBatchUpsertMessage() {
+        const raw = batchInput.value.trim()
+        if (!raw) {
+          setStatus("Batch input is empty", "err")
+          return
+        }
+        let files
+        try {
+          files = JSON.parse(raw)
+        } catch (err) {
+          setStatus("Invalid JSON: " + err.message, "err")
+          return
+        }
+        if (!Array.isArray(files) || files.length === 0) {
+          setStatus("Batch must be a non-empty JSON array", "err")
+          return
+        }
+        for (const f of files) {
+          if (!f || typeof f.fileName !== "string" || typeof f.content !== "string") {
+            setStatus("Each entry must be { fileName: string, content: string }", "err")
+            return
+          }
+          const zipErr = validateZipUrl(f.fileName, f.content)
+          if (zipErr) {
+            setStatus(`${f.fileName}: ${zipErr}`, "err")
+            return
+          }
+        }
+        const zipCount = files.filter((f) => f.fileName.toLowerCase().endsWith(".zip")).length
+        if (zipCount > 1 || (zipCount === 1 && files.length > 1)) {
+          setStatus(
+            "Batch must be all plain files or exactly one .zip (got " +
+              zipCount +
+              " zip in " +
+              files.length +
+              " files)",
+            "err",
+          )
+          return
+        }
+        const ackKey = files.length === 1 ? files[0].fileName : `<batch:${files.length}>`
+        saveBtn.disabled = true
+        batchBtn.disabled = true
+        setStatus(`Sending batch of ${files.length} files (ack key: ${ackKey})…`, "")
+        try {
+          await sendMessage({ action: "ARMIN_UPSERT_FILE", files }, ackKey, ackKey)
+          const summary = files.map((f) => `  ${f.fileName}: ok`).join("\n")
+          setStatus(`Batch saved (${files.length} files)\n${summary}`, "ok")
+        } catch (err) {
+          setStatus(`Batch failed: ${err.message}`, "err")
+        } finally {
+          saveBtn.disabled = false
+          batchBtn.disabled = false
         }
       }
     </script>

@@ -54,7 +54,7 @@ import {
 } from "@/pages/session/helpers"
 import { MessageTimeline } from "@/pages/session/message-timeline"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
-import { UrlViewer } from "@/components/url-viewer"
+import { SessionPlaygroundTab } from "@/pages/session/playground-tab"
 import { decode64 } from "@/utils/base64"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { syncSessionModel } from "@/pages/session/session-model-helpers"
@@ -1278,9 +1278,10 @@ export default function Page() {
   const urlPanel = () => {
     const url = view().url.url()
     if (!url) return null
+    const fallbackDir = () => decode64(params.dir) || undefined
     return (
       <div class="h-full w-full overflow-hidden">
-        <UrlViewer url={url} refreshKey={urlReloadKey()} />
+        <SessionPlaygroundTab url={() => url} refreshKey={urlReloadKey()} fallbackDirectory={fallbackDir} />
       </div>
     )
   }
