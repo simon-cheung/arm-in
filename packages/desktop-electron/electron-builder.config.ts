@@ -86,6 +86,7 @@ function getConfig() {
         ...base,
         appId: "com.ggvale.armin.desktop.dev",
         productName: "ArmIn Dev",
+        linux: { ...base.linux, executableName: "armin-dev" },
         rpm: { packageName: "armin-dev" },
       }
     }
@@ -96,6 +97,7 @@ function getConfig() {
         productName: "ArmIn Beta",
         protocols: { name: "ArmIn Beta", schemes: ["opencode"] },
         publish: { provider: "github", owner: "anomalyco", repo: "opencode-beta", channel: "latest" },
+        linux: { ...base.linux, executableName: "armin-beta" },
         rpm: { packageName: "armin-beta" },
       }
     }
@@ -106,6 +108,7 @@ function getConfig() {
         productName: "ArmIn Desktop",
         protocols: { name: "ArmIn Desktop", schemes: ["opencode"] },
         publish: { provider: "github", owner: "anomalyco", repo: "opencode", channel: "latest" },
+        linux: { ...base.linux, executableName: "armin-desktop" },
         rpm: { packageName: "armin" },
       }
     }
