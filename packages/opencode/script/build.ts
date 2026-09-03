@@ -48,6 +48,25 @@ const migrations = await Promise.all(
 console.log(`Loaded ${migrations.length} migrations`)
 
 const singleFlag = process.argv.includes("--single")
+const runpm = await $`bun pm bin -g`
+const bunCacheRoot = runpm.stdout.toString('utf-8').trimEnd()
+console.log(`Bun global bin dir:; ${bunCacheRoot}`)
+
+let filters:Array<string> = []
+process.argv.forEach((val, index) => {
+ 
+  if(val.indexOf('--filter') != -1){
+    const segs = val.split('=')
+    console.log(`segs: ${segs}`)
+    filters = segs[segs.length - 1].split('+')
+  }
+ 
+});
+console.log(`filters: ${filters}`)
+
+const filterFlag = filters.length > 0;
+
+const useBunCache = process.argv.includes("--bun-cache")
 const baselineFlag = process.argv.includes("--baseline")
 const skipInstall = process.argv.includes("--skip-install")
 const plugin = createSolidTransformPlugin()
@@ -184,9 +203,30 @@ const targets = singleFlag
 
       return true
     })
+    :
+  filterFlag ? allTargets.filter(item=>{
+    const pa = `${item.os}-${item.arch}`
+    return filters.includes(pa);
+  })
   : allTargets
 
 await $`rm -rf dist`
+
+function bunExecName(item : any){
+  let os = item.os
+  let arch = item.arch
+  let ename = '/bun'
+  switch(item.os){
+    case 'win32': os = 'windows'; ename = '\\bun.exe'; break;
+    case 'linux': os = 'linux'; break;
+    case 'darwin': os = 'darwin'; break;
+  }
+  switch(item.arch){
+    case 'x64': arch = 'x64'; break;
+    case 'arm64': arch = 'aarch64'; break;
+  }
+  return `bun-${os}-${arch}${ename}`
+}
 
 const binaries: Record<string, string> = {}
 if (!skipInstall) {
@@ -194,6 +234,7 @@ if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
 }
 for (const item of targets) {
+  const targetBunDir = path.join(bunCacheRoot as any, bunExecName(item))
   const name = [
     pkg.name,
     // changing to win32 flags npm for some reason
@@ -204,7 +245,7 @@ for (const item of targets) {
   ]
     .filter(Boolean)
     .join("-")
-  console.log(`building ${name}`)
+  console.log(`building ${name}, useBunCache: ${useBunCache}, ${targetBunDir}`)
   await $`mkdir -p dist/${name}/bin`
 
   const localPath = path.resolve(dir, "node_modules/@opentui/core/parser.worker.js")
@@ -216,7 +257,10 @@ for (const item of targets) {
   // Use platform-specific bunfs root path based on target OS
   const bunfsRoot = item.os === "win32" ? "B:/~BUN/root/" : "/$bunfs/root/"
   const workerRelativePath = path.relative(dir, parserWorker).replaceAll("\\", "/")
-
+  const compileAddonOpt = {}
+  if(useBunCache){
+    compileAddonOpt.executablePath = targetBunDir;
+  }
   await Bun.build({
     conditions: ["browser"],
     tsconfig: "./tsconfig.json",
@@ -226,6 +270,7 @@ for (const item of targets) {
     minify: true,
     splitting: true,
     compile: {
+      ...compileAddonOpt,
       autoloadBunfig: false,
       autoloadDotenv: false,
       autoloadTsconfig: true,
