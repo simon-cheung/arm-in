@@ -13,6 +13,7 @@ import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
+import PROMPT_DOCBASE from "./prompt/docbase.txt"
 import { Permission } from "@/permission"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@/global"
@@ -146,6 +147,22 @@ export namespace Agent {
               mode: "primary",
               native: true,
             },
+            docbase: {
+              name: "docbase",
+              description: "Use this agent when you need to collaboratively draft, refine, or structure documents based on existing project materials, prioritizing deep understanding and iterative feedback over rapid generation.",
+              options: {},
+              permission: Permission.merge(
+                defaults,
+                Permission.fromConfig({
+                  question: "allow",
+                  plan_enter: "allow",
+                }),
+                user,
+              ),
+              mode: "primary",
+              native: true,
+              prompt: PROMPT_DOCBASE,
+            },            
             general: {
               name: "general",
               description: `General-purpose agent for researching complex questions and executing multi-step tasks. Use this agent to execute multiple units of work in parallel.`,
