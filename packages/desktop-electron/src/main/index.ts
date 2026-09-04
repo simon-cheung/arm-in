@@ -29,7 +29,10 @@ const APP_IDS: Record<string, string> = {
   prod: "com.ggvale.armin.desktop",
 }
 app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "ArmIn Dev")
-app.setPath("userData", join(app.getPath("appData"), app.isPackaged ? APP_IDS[CHANNEL] : "com.ggvale.armin.desktop.dev"))
+app.setPath(
+  "userData",
+  join(app.getPath("appData"), app.isPackaged ? APP_IDS[CHANNEL] : "com.ggvale.armin.desktop.dev"),
+)
 const { autoUpdater } = pkg
 
 import type { InitStep, ServerReadyData, SqliteMigrationProgress, WslConfig } from "../preload/types"
@@ -303,6 +306,12 @@ function sqliteFileExists() {
 
 function setupAutoUpdater() {
   if (!UPDATER_ENABLED) return
+  const feedURL = process.env.OPENCODE_UPDATE_URL ?? "https://armin.com.cn/api/armin/updates"
+  autoUpdater.setFeedURL({
+    provider: "generic",
+    url: feedURL,
+    channel: "latest",
+  })
   autoUpdater.logger = logger
   autoUpdater.channel = "latest"
   autoUpdater.allowPrerelease = false
@@ -310,6 +319,7 @@ function setupAutoUpdater() {
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
   logger.log("auto updater configured", {
+    feedURL,
     channel: autoUpdater.channel,
     allowPrerelease: autoUpdater.allowPrerelease,
     allowDowngrade: autoUpdater.allowDowngrade,

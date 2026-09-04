@@ -2,6 +2,12 @@ interface ImportMetaEnv {
   readonly OPENCODE_CHANNEL: string
 }
 
+declare namespace NodeJS {
+  interface ProcessEnv {
+    readonly OPENCODE_UPDATE_URL?: string
+  }
+}
+
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }

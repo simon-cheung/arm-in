@@ -27,7 +27,6 @@ const channel = (() => {
 })()
 
 const getBase = (): Configuration => ({
-  artifactName: "armin-electron-${os}-${arch}.${ext}",
   directories: {
     output: "dist",
     buildResources: "resources",
@@ -49,6 +48,7 @@ const getBase = (): Configuration => ({
     entitlementsInherit: "resources/entitlements.plist",
     notarize: true,
     target: ["dmg", "zip"],
+    artifactName: "armin-installer-${version}-${arch}.${ext}",
   },
   dmg: {
     sign: true,
@@ -63,6 +63,7 @@ const getBase = (): Configuration => ({
       sign: signWindows,
     },
     target: ["nsis"],
+    artifactName: "armin-installer-${version}.${ext}",
   },
   nsis: {
     oneClick: false,
@@ -74,6 +75,7 @@ const getBase = (): Configuration => ({
     icon: `resources/icons`,
     category: "Development",
     target: ["AppImage", "deb", "rpm"],
+    artifactName: "armin-installer-${version}-${arch}.${ext}",
   },
 })
 
@@ -96,7 +98,8 @@ function getConfig() {
         appId: "com.ggvale.armin.desktop.beta",
         productName: "ArmIn Beta",
         protocols: { name: "ArmIn Beta", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode-beta", channel: "latest" },
+        // beta 渠道不自更新：构建时不写入 app-update.yml，避免自动拉取 latest
+        // 运行时由 setupAutoUpdater 跳过 setFeedURL
         linux: { ...base.linux, executableName: "armin-beta" },
         rpm: { packageName: "armin-beta" },
       }
@@ -107,7 +110,11 @@ function getConfig() {
         appId: "com.ggvale.armin.desktop",
         productName: "ArmIn Desktop",
         protocols: { name: "ArmIn Desktop", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode", channel: "latest" },
+        publish: {
+          provider: "generic",
+          url: process.env.OPENCODE_UPDATE_URL ?? "https://armin.com.cn/api/armin/updates",
+          channel: "latest",
+        },
         linux: { ...base.linux, executableName: "armin-desktop" },
         rpm: { packageName: "armin" },
       }
